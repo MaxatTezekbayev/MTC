@@ -97,7 +97,7 @@ model.cuda()
 optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 
 
-for i in range(args.epoch):
+for i in range(args.epochs):
     train_loss = 0
     for step, (imgs, _) in enumerate(train_loader):
         imgs = imgs.cuda()
