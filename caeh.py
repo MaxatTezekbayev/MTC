@@ -214,7 +214,7 @@ cur_b = model.b1.cpu().detach().numpy()
 
 del model
 # Predicting and printing the accuracy
-for k in range(5, 10, 4):
+for k in [9,11,13,15]:
     i = 0
     total_correct = 0
     for test_image in test_images:
@@ -222,7 +222,7 @@ for k in range(5, 10, 4):
         if pred == test_labels[i]:
             total_correct += 1
         acc = (total_correct / (i+1)) * 100
-        if i % 100 == 0:
+        if i % 2000 == 0:
             print('test image['+str(i)+']', '\tpred:', pred, '\torig:',
                   test_labels[i], '\tacc:', str(round(acc, 2))+'%')
         i += 1
