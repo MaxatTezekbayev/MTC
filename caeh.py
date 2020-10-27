@@ -212,9 +212,9 @@ cur_W = model.W1.cpu().detach().numpy()
 cur_b = model.b1.cpu().detach().numpy()
 
 
-# del model
+del model
 # Predicting and printing the accuracy
-for k in range(5, 18, 4):
+for k in range(5, 10, 4):
     i = 0
     total_correct = 0
     for test_image in test_images:
