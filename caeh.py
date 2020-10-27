@@ -92,7 +92,7 @@ def cae_h_loss(imgs, imgs_noise,  recover, code_data, code_data_noise, lambd, ga
     return loss
 
 
-model = CAE(args.dimensionality, args.code_size, args.batch_size, args.Nnoise)
+model = CAE(dimensionality, args.code_size, args.batch_size, args.Nnoise)
 model.cuda()
 optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 
