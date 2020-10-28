@@ -128,7 +128,7 @@ def euclidean_distance(img_a, img_b):
     '''Finds the distance between 2 images: img_a, img_b'''
     # element-wise computations are automatically handled by numpy
     return np.sum((img_a - img_b) ** 2)
-
+    
 
 def find_majority(labels):
     '''Finds the majority class/label out of the given labels'''
@@ -213,8 +213,9 @@ cur_b = model.b1.cpu().detach().numpy()
 
 
 del model
+torch.cuda.empty_cache()
 # Predicting and printing the accuracy
-for k in [9,11,13,15]:
+for k in [1,3,5,7]:
     i = 0
     total_correct = 0
     for test_image in test_images:
@@ -227,7 +228,7 @@ for k in [9,11,13,15]:
                   test_labels[i], '\tacc:', str(round(acc, 2))+'%')
         i += 1
 
-    with open('results.txt','a') as f:
-        f.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(args.learning_rate, args.lambd, args.gamma, args.code_size, args.epsilon, k, acc ))
+    with open('results2.txt','a') as f:
+        f.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(args.learning_rate, args.lambd, args.gamma, args.code_size, args.epsilon, args.Nnoise, k, acc ))
 
 
