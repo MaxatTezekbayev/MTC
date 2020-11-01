@@ -50,7 +50,7 @@ epoch_size = len(dataset1) // args.batch_size
 
 class CAE1Layer(nn.Module):
     def __init__(self, dimensionality, code_size, Nnoise):
-        super(CAE, self).__init__()
+        super(CAE1Layer, self).__init__()
         self.dim = dimensionality
         self.code_size = code_size
         self.Nnoise = Nnoise
@@ -78,7 +78,7 @@ class CAE1Layer(nn.Module):
 
 class CAE2Layer(nn.Module):
     def __init__(self, dimensionality, code_sizes, Nnoise):
-        super(CAE, self).__init__()
+        super(CAE2Layer, self).__init__()
         self.dim = dimensionality
         self.code_sizes = code_sizes
         self.Nnoise = Nnoise
