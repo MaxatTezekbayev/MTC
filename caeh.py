@@ -20,7 +20,8 @@ parser.add_argument('--Nnoise', type=int, default=30,
                     help='N samples to draw for epsilion')
 parser.add_argument('--code_size', type=int, default=60,
                     help='dimension of hidden layer')
-
+parser.add_argument('--code_size2', type=int, default=60,
+                    help='dimension of hidden layer')
 
 parser.add_argument('--epsilon', type=float, default=0.1,
                     help='std for random noise')
@@ -28,6 +29,8 @@ parser.add_argument('--epsilon', type=float, default=0.1,
 parser.add_argument('--epochs', type=int, default=100,
                     help='upper epoch limit')
 
+parser.add_argument('--numlayers', type=int, default=1,
+                    help='layers of CAE+H (1 or 2)')
 
 args = parser.parse_args()
 
@@ -45,12 +48,11 @@ test_loader = torch.utils.data.DataLoader(dataset2, batch_size=args.batch_size)
 epoch_size = len(dataset1) // args.batch_size
 
 
-class CAE(nn.Module):
-    def __init__(self, dimensionality, code_size, batch_size, Nnoise):
+class CAE1Layer(nn.Module):
+    def __init__(self, dimensionality, code_size, Nnoise):
         super(CAE, self).__init__()
         self.dim = dimensionality
         self.code_size = code_size
-        self.batch_size = batch_size
         self.Nnoise = Nnoise
         # parameters
         self.W1 = nn.Parameter(torch.Tensor(dimensionality, code_size))
@@ -74,6 +76,56 @@ class CAE(nn.Module):
         return recover, code_data, code_data_noise
 
 
+class CAE2Layer(nn.Module):
+    def __init__(self, dimensionality, code_sizes, Nnoise):
+        super(CAE, self).__init__()
+        self.dim = dimensionality
+        self.code_sizes = code_sizes
+        self.Nnoise = Nnoise
+        # parameters
+        #encoder
+        self.W1 = nn.Parameter(torch.Tensor(self.dim, code_sizes[0]))
+        self.b1 = nn.Parameter(torch.Tensor(code_sizes[0]))
+        self.W2 = nn.Parameter(torch.Tensor(code_sizes[0], code_sizes[1]))
+        self.b2 = nn.Parameter(torch.Tensor(code_sizes[1]))
+        #decoder
+        self.W3 = nn.Parameter(torch.Tensor(code_sizes[1], code_sizes[0]))
+        self.b3 = nn.Parameter(torch.Tensor(code_sizes[0]))
+        self.W4 = nn.Parameter(torch.Tensor(code_sizes[0], self.dim))
+        self.b_r = nn.Parameter(torch.Tensor(self.dim))
+
+        self.sigmoid = torch.nn.Sigmoid()
+        # init
+        torch.nn.init.normal_(self.W1, mean=0.0, std=1.0)
+        torch.nn.init.normal_(self.W2, mean=0.0, std=1.0)
+        torch.nn.init.normal_(self.W3, mean=0.0, std=1.0)
+        torch.nn.init.normal_(self.W4, mean=0.0, std=1.0)
+
+        torch.nn.init.constant_(self.b1, 0.1)
+        torch.nn.init.constant_(self.b2, 0.1)
+        torch.nn.init.constant_(self.b3, 0.1)
+        torch.nn.init.constant_(self.b_r, 0.1)
+
+    def forward(self, x, x_noise):
+        #encode
+        code_data1 = self.sigmoid(torch.matmul(x.view(-1, self.dim), self.W1) + self.b1)
+        code_data2 = self.sigmoid(torch.matmul(code_data1, self.W2) + self.b2)
+        #decode
+        code_data3 = self.sigmoid(torch.matmul(code_data2, self.W3) + self.b3)
+        
+        recover = self.sigmoid(torch.matmul(code_data3, self.W4) + self.b_r)
+        recover = recover.view(*x.shape)
+
+
+        code_data_noise1 = torch.sigmoid(torch.matmul(x_noise.view(-1, self.Nnoise, self.dim), self.W1) + self.b1)
+        code_data_noise2 = torch.sigmoid(torch.matmul(code_data_noise1, self.W2) + self.b2)
+
+        return recover, code_data2, code_data_noise2
+
+
+
+
+
 def cae_h_loss(imgs, imgs_noise,  recover, code_data, code_data_noise, lambd, gamma):
     criterion = nn.MSELoss()
     loss1 = criterion(recover, imgs)
@@ -91,8 +143,13 @@ def cae_h_loss(imgs, imgs_noise,  recover, code_data, code_data_noise, lambd, ga
 
     return loss
 
+if args.numlayers==1:
+    model = CAE1Layer(dimensionality, args.code_size, args.Nnoise)
+elif args.numlayers==2:
+    model = CAE2Layer(dimensionality, [args.code_size, args.code_size2], args.Nnoise)
+else:
+    raise Exception("Sorry, numlayers only 1 or 2")
 
-model = CAE(dimensionality, args.code_size, args.batch_size, args.Nnoise)
 model.cuda()
 optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 
@@ -215,7 +272,7 @@ cur_b = model.b1.cpu().detach().numpy()
 del model
 torch.cuda.empty_cache()
 # Predicting and printing the accuracy
-for k in [1,3,5,7]:
+for k in [1, 3,5]:
     i = 0
     total_correct = 0
     for test_image in test_images:
@@ -227,8 +284,12 @@ for k in [1,3,5,7]:
             print('test image['+str(i)+']', '\tpred:', pred, '\torig:',
                   test_labels[i], '\tacc:', str(round(acc, 2))+'%')
         i += 1
+    if args.numlayers==1:
+        with open('results2.txt','a') as f:
+            f.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(args.learning_rate, args.lambd, args.gamma, args.code_size, args.epsilon, args.Nnoise, k, acc ))
 
-    with open('results2.txt','a') as f:
-        f.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(args.learning_rate, args.lambd, args.gamma, args.code_size, args.epsilon, args.Nnoise, k, acc ))
+    elif args.numlayers==2:
+        with open('results2layers.txt','a') as f:
+            f.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(args.learning_rate, args.lambd, args.gamma, args.code_size, args.code_size2, args.epsilon, args.Nnoise, k, acc ))
 
 
