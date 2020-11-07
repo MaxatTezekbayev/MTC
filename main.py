@@ -50,16 +50,16 @@ args = parser.parse_args()
 
 image_size = 28
 dimensionality = image_size*image_size
-
+batch_size = args.batch_size
 
 
 
 dataset1 = datasets.MNIST('data', train=True, download=True, transform=transforms.ToTensor())
 dataset2 = datasets.MNIST('data', train=False, download=True, transform=transforms.ToTensor())
-train_loader = torch.utils.data.DataLoader(dataset1, batch_size=args.batch_size)
-test_loader = torch.utils.data.DataLoader(dataset2, batch_size=args.batch_size)
+train_loader = torch.utils.data.DataLoader(dataset1, batch_size=batch_size)
+test_loader = torch.utils.data.DataLoader(dataset2, batch_size=batch_size)
 
-epoch_size = len(dataset1) // args.batch_size
+epoch_size = len(dataset1) // batch_size
 def cae_h_loss(imgs, imgs_noise,  recover, code_data, code_data_noise, lambd, gamma):
     criterion = nn.MSELoss()
     loss1=criterion(recover, imgs)
