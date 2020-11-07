@@ -1,3 +1,6 @@
+import torch
+import torch.nn as nn
+
 class CAE1Layer(nn.Module):
     def __init__(self, dimensionality, code_size):
         super(CAE1Layer, self).__init__()
