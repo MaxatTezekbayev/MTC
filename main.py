@@ -117,7 +117,7 @@ for i in range(args.epochs):
     for step, (imgs, _) in enumerate(train_loader):
         imgs = imgs.view(batch_size, -1).cuda()
         imgs.requires_grad_(True)
-        imgs_noise = torch.autograd.Variable(imgs.data + torch.normal(0, epsilon, size=[batch_size, dimensionality]).cuda(),requires_grad=True)
+        imgs_noise = torch.autograd.Variable(imgs.data + torch.normal(0, args.epsilon, size=[batch_size, dimensionality]).cuda(),requires_grad=True)
 
         recover, code_data, code_data_noise = model(imgs, imgs_noise)
         loss = cae_h_loss(imgs, imgs_noise, recover, code_data,
