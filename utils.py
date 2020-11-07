@@ -19,7 +19,7 @@ def knn_distances(train_images, train_labels, test_image, n_top):
                  for (image, label) in zip(train_images, train_labels)]
     # sort the distances list by distances
 
-    def compare(distance): return distance[0]
+    compare = lambda distance: distance[0]
     by_distances = sorted(distances, key=compare)
-    top_n_labels = [label for (_, label) in distances[:n_top]]
+    top_n_labels = [label for (_, label) in by_distances[:n_top]]
     return top_n_labels
