@@ -5,8 +5,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 import numpy as np
-from .models import *
-from .utils import knn_predict, sigmoid
+from models import *
+from utils import knn_predict, sigmoid
 import argparse
 from collections import Counter
 
