@@ -177,7 +177,7 @@ if args.KNN:
     #encode images
     for W,b in weights:
         train_images = sigmoid(np.matmul(train_images, W.T) + b)
-        test_images = sigmoid(np.matmul(train_images, W.T) + b)
+        test_images = sigmoid(np.matmul(test_images, W.T) + b)
 
     # del model
     # torch.cuda.empty_cache()
