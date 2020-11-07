@@ -6,7 +6,7 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 import numpy as np
 from models import *
-from utils import knn_predict, sigmoid
+from utils import knn_distances, sigmoid
 import argparse
 from collections import Counter
 
