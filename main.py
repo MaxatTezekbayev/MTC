@@ -179,8 +179,8 @@ if args.KNN:
         train_images = sigmoid(np.matmul(train_images, W.T) + b)
         test_images = sigmoid(np.matmul(train_images, W.T) + b)
 
-    del model
-    torch.cuda.empty_cache()
+    # del model
+    # torch.cuda.empty_cache()
 
     # Predicting and printing the accuracy
     
