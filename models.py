@@ -21,7 +21,7 @@ class CAE1Layer(nn.Module):
         recover = self.sigmoid(torch.matmul(code_data, self.W1) + self.b_r)
 
         #noise
-        if x_noise:
+        if x_noise is not None:
             code_data_noise = torch.sigmoid(torch.matmul(x_noise, self.W1.t()) + self.b1)
             return recover, code_data, code_data_noise
         else:
