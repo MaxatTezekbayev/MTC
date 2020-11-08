@@ -41,9 +41,6 @@ parser.add_argument('--save_dir_for_CAE', type=str, default=None,
 parser.add_argument('--KNN', type=bool, default=False,
                     help='KNN or not')
 
-parser.add_argument('--MCT', type=bool, default=False,
-                    help='train MCT or not')
-
 
 args = parser.parse_args()
 
@@ -99,7 +96,7 @@ def cae_h_loss(imgs, imgs_noise,  recover, code_data, code_data_noise, lambd, ga
     loss3 = torch.mean(torch.sum(torch.pow(Jx - Jx_noise,2),dim=[1,2]))
     loss = loss1 + (lambd*loss2) + gamma*loss3
     
-    return loss
+    return loss, loss1, Jx
 
 if args.numlayers==1:
     model = CAE1Layer(dimensionality, args.code_size)
@@ -114,13 +111,14 @@ optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 
 for i in range(args.epochs):
     train_loss = 0
+    MSE_loss = 0 
     for step, (imgs, _) in enumerate(train_loader):
         imgs = imgs.view(batch_size, -1).cuda()
         imgs.requires_grad_(True)
         imgs_noise = torch.autograd.Variable(imgs.data + torch.normal(0, args.epsilon, size=[batch_size, dimensionality]).cuda(),requires_grad=True)
 
         recover, code_data, code_data_noise = model(imgs, imgs_noise)
-        loss = cae_h_loss(imgs, imgs_noise, recover, code_data,
+        loss, loss1, Jx = cae_h_loss(imgs, imgs_noise, recover, code_data,
                           code_data_noise, args.lambd, args.gamma)
 
         imgs.requires_grad_(False)
@@ -129,6 +127,7 @@ for i in range(args.epochs):
         loss.backward()
 
         train_loss += loss.item()
+        MSE_loss += loss1.item()
         optimizer.step()
 
         optimizer.zero_grad()
@@ -138,9 +137,6 @@ for i in range(args.epochs):
 
 if args.save_dir_for_CAE:
     torch.save(model.state_dict(), args.save_dir_for_CAE)
-
-if args.MCT:
-    pass
 
 
 if args.KNN:
@@ -205,6 +201,6 @@ if args.KNN:
 
     for k in ks:
         with open('results_CAEH.txt','a') as f:
-            f.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(args.learning_rate, args.lambd, args.gamma, args.code_size, args.code_size2, args.epsilon, k, accuracies[k]))
+            f.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(MSE_loss/epoch_size, args.learning_rate, args.lambd, args.gamma, args.code_size, args.code_size2, args.epsilon, k, accuracies[k]))
 
 
