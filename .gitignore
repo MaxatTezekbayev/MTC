@@ -10,6 +10,7 @@ __pycache__/
 
 saved_weights/
 results/
+data/
 
 # Distribution / packaging
 .Python
