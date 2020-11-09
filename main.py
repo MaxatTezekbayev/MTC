@@ -96,7 +96,7 @@ def cae_h_loss(imgs, imgs_noise,  recover, code_data, code_data_noise, lambd, ga
     loss3 = torch.mean(torch.sum(torch.pow(Jx - Jx_noise,2),dim=[1,2]))
     loss = loss1 + (lambd*loss2) + gamma*loss3
     
-    return loss, loss1, Jx
+    return loss, loss1
 
 if args.numlayers==1:
     model = CAE1Layer(dimensionality, args.code_size)
@@ -118,7 +118,7 @@ for i in range(args.epochs):
         imgs_noise = torch.autograd.Variable(imgs.data + torch.normal(0, args.epsilon, size=[batch_size, dimensionality]).cuda(),requires_grad=True)
 
         recover, code_data, code_data_noise = model(imgs, imgs_noise)
-        loss, loss1, Jx = cae_h_loss(imgs, imgs_noise, recover, code_data,
+        loss, loss1 = cae_h_loss(imgs, imgs_noise, recover, code_data,
                           code_data_noise, args.lambd, args.gamma)
 
         imgs.requires_grad_(False)
