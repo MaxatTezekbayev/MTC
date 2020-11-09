@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 import numpy as np
-from models import CAE1Layer, CAE2Layer, MCT
+from models import CAE1Layer, CAE2Layer, MTC
 from utils import cae_h_loss, calculate_singular_vectors_B, knn_distances, sigmoid
 import argparse
 from collections import Counter
@@ -47,8 +47,6 @@ parser.add_argument('--KNN', type=bool, default=False,
                     help='KNN or not')
 parser.add_argument('--train_CAEH', type=bool, default=True,
                     help='train_CAEH or not')
-parser.add_argument('--store_U', type=bool, default=False,
-                    help='calculate singular vectors and store them in model')
 
 #MTC
 parser.add_argument('--MTC', type=bool, default=True,
@@ -115,14 +113,12 @@ elif args.train_CAEH:
         if i % 10 == 0:
             print(i, train_loss/epoch_size)
 
-if store_U:
-    U=calculate_singular_vectors_B(model, train_loader, dM, batch_size)
-    model.U = nn.Parameter(U.cuda(), requires_grad=False)
 
 if args.save_dir_for_CAE:
     torch.save(model.state_dict(), args.save_dir_for_CAE)
 
 if args.MTC:
+    U=calculate_singular_vectors_B(model, train_loader, args.dM, batch_size)
     number_of_classes = len(train_dataset.classes)
     MTC_model = MTC(model, number_of_classes)
 

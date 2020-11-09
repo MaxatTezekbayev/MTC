@@ -10,9 +10,8 @@ class CAE1Layer(nn.Module):
         self.b1 = nn.Parameter(torch.Tensor(code_size))
         self.b_r = nn.Parameter(torch.Tensor(dimensionality))
 
-        self.U = nn.Parameter(requires_grad=False)
-
         self.sigmoid = torch.nn.Sigmoid()
+
         # init
         torch.nn.init.normal_(self.W1, mean=0.0, std=1.0)
         torch.nn.init.constant_(self.b1, 0.1)
@@ -42,10 +41,6 @@ class CAE2Layer(nn.Module):
         self.b2 = nn.Parameter(torch.Tensor(code_sizes[1]))
         self.b3 = nn.Parameter(torch.Tensor(code_sizes[0]))
         self.b_r = nn.Parameter(torch.Tensor(dimensionality))
-
-
-        self.U = nn.Parameter(requires_grad=False)
-
 
         self.sigmoid = torch.nn.Sigmoid()
         # init
@@ -86,7 +81,7 @@ class MTC(nn.Module):
 
     def forward(self, x):
         #encode
-        code_data = self.CAE(x)
-        recover, output = self.linear(code_data)
+        recover, code_data = self.CAE(x)
+        output = self.linear(code_data)
 
         return output
