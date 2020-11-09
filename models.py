@@ -10,7 +10,7 @@ class CAE1Layer(nn.Module):
         self.b1 = nn.Parameter(torch.Tensor(code_size))
         self.b_r = nn.Parameter(torch.Tensor(dimensionality))
 
-        self.U = nn.Parameter()
+        self.U = nn.Parameter(requires_grad=False)
 
         self.sigmoid = torch.nn.Sigmoid()
         # init
@@ -44,7 +44,7 @@ class CAE2Layer(nn.Module):
         self.b_r = nn.Parameter(torch.Tensor(dimensionality))
 
 
-        self.U = nn.Parameter()
+        self.U = nn.Parameter(requires_grad=False)
 
 
         self.sigmoid = torch.nn.Sigmoid()
@@ -74,9 +74,9 @@ class CAE2Layer(nn.Module):
             return recover, code_data2
 
 
-class MCT(nn.Module):
+class MTC(nn.Module):
     def __init__(self, CAE_model, output_dim):
-        super(CAE2Layer, self).__init__()
+        super(MTC, self).__init__()
         self.CAE = CAE_model
         self.output_dim = output_dim
         # parameters

@@ -1,4 +1,54 @@
 import numpy as np
+import torch
+import torch.nn as nn
+
+
+
+def cae_h_loss(imgs, imgs_noise,  recover, code_data, code_data_noise, lambd, gamma, batch_size):
+    criterion = nn.MSELoss()
+    loss1=criterion(recover, imgs)
+    #new variant (faster)
+    grad_output=torch.ones(batch_size).cuda()
+    Jx=[]                                                                                        
+    for i in range(code_data.shape[1]):
+        Jx.append(torch.autograd.grad(outputs=code_data[:,i], inputs=imgs, grad_outputs=grad_output, retain_graph=True, create_graph=True)[0])
+    Jx=torch.reshape(torch.cat(Jx,1),[batch_size, code_data.shape[1], imgs.shape[1]])
+    
+    Jx_noise=[]                                                                                        
+    for i in range(code_data_noise.shape[1]):
+        Jx_noise.append(torch.autograd.grad(outputs=code_data_noise[:,i], inputs=imgs_noise, grad_outputs=grad_output, retain_graph=True, create_graph=True)[0])
+    Jx_noise=torch.reshape(torch.cat(Jx_noise,1),[batch_size, code_data_noise.shape[1], imgs_noise.shape[1]])
+
+    loss2 = torch.mean(torch.sum(torch.pow(Jx,2), dim=[1,2]))
+    loss3 = torch.mean(torch.sum(torch.pow(Jx - Jx_noise,2),dim=[1,2]))
+    loss = loss1 + (lambd*loss2) + gamma*loss3
+    
+    return loss, loss1
+
+
+def calculate_singular_vectors_B(model, train_loader, dM, batch_size):
+    grad_output=torch.ones(batch_size).cuda()
+    U=[]
+    for step, (imgs, _) in enumerate(train_loader):
+        imgs = imgs.view(batch_size, -1).cuda()
+        imgs.requires_grad_(True)
+        recover, code_data= model(imgs)
+        Jx=[]                                                                                        
+        for i in range(code_data.shape[1]):
+            Jx.append(torch.autograd.grad(outputs=code_data[:,i], inputs=imgs, grad_outputs=grad_output, retain_graph=True)[0])
+        Jx=torch.reshape(torch.cat(Jx,1),[batch_size, code_data.shape[1], imgs.shape[1]])
+        u, s, v = torch.svd(torch.transpose(Jx, 1, 2))
+        u=u[:,:,:dM]
+        U.append(u)
+        if step%100 == 0:
+            print("calculating U:", step)
+    U = torch.stack(U)
+    return U
+
+
+
+
+
 
 def sigmoid(x):
     return 1. / (1+np.exp(-x))
