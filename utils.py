@@ -25,7 +25,23 @@ def cae_h_loss(imgs, imgs_noise,  recover, code_data, code_data_noise, lambd, ga
     
     return loss, loss1
 
+def MTC_loss(pred, y, u, imgs, beta):
+    grad_output=torch.ones(batch_size).cuda()
+    
+    criterion = nn.CrossEntropyLoss()
+    loss1=criterion(pred, y)
 
+    dodx=[]                                                                                        
+    for i in range(pred.shape[1]):
+        dodx.append(torch.autograd.grad(outputs=pred[:,i], inputs=imgs, grad_outputs=grad_output, retain_graph=True, create_graph=True)[0])
+    dodx=torch.reshape(torch.cat(dodx,1),[batch_size, pred.shape[1], imgs.shape[1]])
+    
+    omega = torch.mean(torch.sum(torch.pow(torch.matmul(dodx, u),2), dim=[1,2]))
+    
+    loss=loss1 + beta * omega
+    return loss, loss1
+    
+    
 def calculate_singular_vectors_B(model, train_loader, dM, batch_size):
     grad_output=torch.ones(batch_size).cuda()
     U=[]

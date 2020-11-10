@@ -6,7 +6,7 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 import numpy as np
 from models import CAE1Layer, CAE2Layer, MTC
-from utils import cae_h_loss, calculate_singular_vectors_B, knn_distances, sigmoid
+from utils import cae_h_loss, MTC_loss, calculate_singular_vectors_B, knn_distances, sigmoid
 import argparse
 from collections import Counter
 torch.manual_seed(42)
@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(description='Implementation of CAE+H',
 
 
 parser.add_argument('--dataset', type=str, default="MNIST")
-parser.add_argument('--learning_rate', type=float, default=0.0001)
+parser.add_argument('--learning_rate', type=float, default=0.001)
 parser.add_argument('--batch_size', type=int, default=100)
 parser.add_argument('--lambd', type=float, default=0.0)
 parser.add_argument('--gamma', type=float, default=0.01,
@@ -41,18 +41,24 @@ parser.add_argument('--save_dir_for_CAE', type=str, default=None,
                     help='directory for saving weights')
 
 parser.add_argument('--pretrained_CAEH', type=str, default=None,
-                    help='path to pretrainded state_dict for CAEH. If provided, we will not train CAEH models')
+                    help='path to pretrainded state_dict for CAEH. If provided, we will not train CAEH model')
 
 parser.add_argument('--KNN', type=bool, default=False,
                     help='KNN or not')
+
 parser.add_argument('--train_CAEH', type=bool, default=True,
                     help='train_CAEH or not')
 
 #MTC
-parser.add_argument('--MTC', type=bool, default=True,
+parser.add_argument('--MTC', type=bool, default=False,
                     help='train MTC or not')
 parser.add_argument('--dM', type=int, default=15,
                     help='number of leading singular vectors')
+
+
+parser.add_argument('--beta', type=float, default=0.1)
+parser.add_argument('--MTC_epochs', type=float, default=100)
+parser.add_argument('--MTC_lr', type=float, default=0.001)
 
 args = parser.parse_args()
 
@@ -121,11 +127,25 @@ if args.MTC:
     U=calculate_singular_vectors_B(model, train_loader, args.dM, batch_size)
     number_of_classes = len(train_dataset.classes)
     MTC_model = MTC(model, number_of_classes)
+    MTC_model.cuda()
+    optimizer = optim.Adam(MTC_model.parameters(), lr = args.MTC_lr)
+    for step in range(args.MTC_epochs):
+        train_loss = 0
+        CE_loss = 0
+        for (imgs, y), u in zip(train_loader, U):
+            imgs = imgs.view(batch_size, -1).cuda()
+            imgs.requires_grad_(True)
+            y = y.cuda()
+            pred = MTC_model(imgs)
+            loss, loss1 = MTC_loss(pred, y, u, imgs, args.beta)
+            imgs.requires_grad_(False)
+            loss.backward()
+            train_loss += loss.item()
+            CE_loss += loss1.item()
+            optimizer.step()
 
-    step = 0
-    for (imgs, y), u in zip(train_loader, model.U):
-        imgs = imgs.view(batch_size, -1).cuda()
-        y_pred = MTC_model(imgs)
+            optimizer.zero_grad()
+    print(step, train_loss/epoch_size, CE_loss/epoch_size)
 
 
 
