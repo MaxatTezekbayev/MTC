@@ -63,7 +63,7 @@ parser.add_argument('--MTC_lr', type=float, default=0.001)
 
 args = parser.parse_args()
 
-writer = SummaryWriter('runs/' + "_".join([args.code_size, args.code_size2, args.learning_rate, args.lambd, args.gamma, args.epsilon]))
+writer = SummaryWriter('runs/' + "_".join(map(str,["caeh", args.code_size, args.code_size2, args.learning_rate, args.lambd, args.gamma, args.epsilon])))
 
 
 
