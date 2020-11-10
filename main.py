@@ -62,6 +62,10 @@ parser.add_argument('--MTC_lr', type=float, default=0.001)
 
 args = parser.parse_args()
 
+writer = SummaryWriter('runs/' + "_".join([args.code_size, args.code_size2, args.learning_rate, args.lambd, args.gamma, epsilon]))
+
+
+
 
 image_size = 28
 dimensionality = image_size*image_size
@@ -93,7 +97,7 @@ optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 if args.pretrained_CAEH:
     model.load_state_dict(torch.load(args.pretrained_CAEH))
 elif args.train_CAEH:
-    for i in range(args.epochs):
+    for epoch in range(args.epochs):
         train_loss = 0
         MSE_loss = 0 
         for step, (imgs, _) in enumerate(train_loader):
@@ -115,9 +119,11 @@ elif args.train_CAEH:
             optimizer.step()
 
             optimizer.zero_grad()
-
-        if i % 10 == 0:
-            print(i, train_loss/epoch_size)
+        writer.add_scalar('Total_train_Loss', (train_loss / epoch_size), epoch)
+        writer.add_scalar('Total_train_MSE_Loss', (MSE_loss / epoch_size), epoch)
+        
+        if step % 10 == 0:
+            print(epoch, train_loss/epoch_size)
 
 
 if args.save_dir_for_CAE:
@@ -212,6 +218,7 @@ if args.KNN:
     accuracies = {k: round((v/i) * 100, 2) for k,v in total_correct.items()}
 
     for k in ks:
+        writer.add_scalar('K_acc', accuracies[k], k)
         with open('results_CAEH.txt','a') as f:
             f.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(MSE_loss/epoch_size, args.learning_rate, args.lambd, args.gamma, args.code_size, args.code_size2, args.epsilon, k, accuracies[k]))
 
