@@ -123,7 +123,7 @@ elif args.train_CAEH:
         writer.add_scalar('Total_train_Loss', (train_loss / epoch_size), epoch)
         writer.add_scalar('Total_train_MSE_Loss', (MSE_loss / epoch_size), epoch)
         
-        if step % 10 == 0:
+        if epoch % 10 == 0:
             print(epoch, train_loss/epoch_size)
 
 
