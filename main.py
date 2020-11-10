@@ -68,7 +68,7 @@ dimensionality = image_size*image_size
 batch_size = args.batch_size
 
 
-if args.dataset == "MNIST"
+if args.dataset == "MNIST":
     train_dataset= datasets.MNIST('data', train=True, download=True, transform=transforms.ToTensor())
     test_dataset = datasets.MNIST('data', train=False, download=True, transform=transforms.ToTensor())
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
