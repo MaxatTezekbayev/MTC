@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 import numpy as np
+from torch.utils.tensorboard import SummaryWriter
 from models import CAE1Layer, CAE2Layer, MTC
 from utils import cae_h_loss, MTC_loss, calculate_singular_vectors_B, knn_distances, sigmoid
 import argparse
