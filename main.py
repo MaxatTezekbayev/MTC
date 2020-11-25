@@ -176,7 +176,7 @@ if args.MTC:
         writer.add_scalar('Loss/val_CE_Loss', (val_loss / epoch_size), epoch)
         writer.add_scalar('Acc/train', (correct / (epoch_size*batch_size), epoch))
         writer.add_scalar('Acc/val', (val_correct / (epoch_size*batch_size), epoch))
-        print(step, train_loss/epoch_size, CE_loss/epoch_size, (correct / (epoch_size*batch_size), (val_correct / (epoch_size*batch_size))
+        print(step, train_loss/epoch_size, CE_loss/epoch_size, correct / (epoch_size*batch_size), val_correct / (epoch_size*batch_size))
 
 
 #if CAEH + KNN
