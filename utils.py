@@ -53,7 +53,7 @@ def calculate_singular_vectors_B(model, train_loader, dM, batch_size):
         for i in range(code_data.shape[1]):
             Jx.append(torch.autograd.grad(outputs=code_data[:,i], inputs=imgs, grad_outputs=grad_output, retain_graph=True)[0])
         Jx=torch.reshape(torch.cat(Jx,1),[batch_size, code_data.shape[1], imgs.shape[1]])
-        u, s, v = torch.svd(torch.transpose(Jx, 1, 2))
+        u, _, _ = torch.svd(torch.transpose(Jx, 1, 2))
         u=u[:,:,:dM]
         U.append(u)
         if step%100 == 0:
