@@ -58,12 +58,11 @@ parser.add_argument('--dM', type=int, default=15,
 
 
 parser.add_argument('--beta', type=float, default=0.1)
-parser.add_argument('--MTC_epochs', type=float, default=100)
+parser.add_argument('--MTC_epochs', type=float, default=50)
 parser.add_argument('--MTC_lr', type=float, default=0.001)
 
 args = parser.parse_args()
 
-writer = SummaryWriter('runs/' + "_".join(map(str,["caeh", args.code_size, args.code_size2, args.learning_rate, args.lambd, args.gamma, args.epsilon])))
 
 
 
@@ -98,6 +97,8 @@ optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 if args.pretrained_CAEH:
     model.load_state_dict(torch.load(args.pretrained_CAEH))
 elif args.train_CAEH:
+    writer = SummaryWriter('runs/' + "_".join(map(str,["caeh", args.code_size, args.code_size2, args.learning_rate, args.lambd, args.gamma, args.epsilon])))
+
     for epoch in range(args.epochs):
         train_loss = 0
         MSE_loss = 0 
@@ -131,14 +132,20 @@ if args.save_dir_for_CAE:
     torch.save(model.state_dict(), args.save_dir_for_CAE)
 
 if args.MTC:
+    writer = SummaryWriter('runs/' + "_".join(map(str,["MTC", args.code_size, args.code_size2, args.learning_rate, args.lambd, args.gamma, args.epsilon, args.MTC_lr, args.MTC_epochs, args.beta, args.dM])))
+
     U=calculate_singular_vectors_B(model, train_loader, args.dM, batch_size)
     number_of_classes = len(train_dataset.classes)
     MTC_model = MTC(model, number_of_classes)
     MTC_model.cuda()
     optimizer = optim.Adam(MTC_model.parameters(), lr = args.MTC_lr)
+    criterion = nn.CrossEntropyLoss()
     for step in range(args.MTC_epochs):
         train_loss = 0
         CE_loss = 0
+        correct=0
+        val_loss=0
+        val_correct=0
         for (imgs, y), u in zip(train_loader, U):
             imgs = imgs.view(batch_size, -1).cuda()
             imgs.requires_grad_(True)
@@ -149,12 +156,27 @@ if args.MTC:
             loss.backward()
             train_loss += loss.item()
             CE_loss += loss1.item()
+            _,preds=torch.max(pred,1)    
+            correct+=torch.sum(preds==y.data) 
+
             optimizer.step()
 
             optimizer.zero_grad()
-    print(step, train_loss/epoch_size, CE_loss/epoch_size)
 
+        with torch.no_grad():  
+            for val_input,val_labels in test_loader:  
+                val_input=val_input.view(batch_size, -1).cuda()
+                val_outputs=model(val_input)  
+                val_loss1=criteron(val_outputs,val_labels)   
+                _,val_preds=torch.max(val_outputs,1)  
+                val_loss+=val_loss1.item()  
+                val_correct+=torch.sum(val_preds==val_labels.data)  
 
+        writer.add_scalar('Loss/train_CE_Loss', (CE_loss / epoch_size), epoch)
+        writer.add_scalar('Loss/val_CE_Loss', (val_loss / epoch_size), epoch)
+        writer.add_scalar('Acc/train', (correct / (epoch_size*batch_size), epoch)
+        writer.add_scalar('Acc/val', (val_correct / (epoch_size*batch_size), epoch)
+        print(step, train_loss/epoch_size, CE_loss/epoch_size, (correct / (epoch_size*batch_size), (val_correct / (epoch_size*batch_size))
 
 
 #if CAEH + KNN
