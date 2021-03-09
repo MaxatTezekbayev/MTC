@@ -82,7 +82,7 @@ else:
 
 
 epoch_size = len(train_dataset) // batch_size
-
+test_epoch_size = len(test_dataset) // batch_size
 
 if args.numlayers==1:
     model = CAE1Layer(dimensionality, args.code_size)
@@ -140,7 +140,7 @@ if args.MTC:
     MTC_model.cuda()
     optimizer = optim.Adam(MTC_model.parameters(), lr = args.MTC_lr)
     criterion = nn.CrossEntropyLoss()
-    for step in range(args.MTC_epochs):
+    for epoch in range(args.MTC_epochs):
         train_loss = 0
         CE_loss = 0
         correct=0
@@ -151,13 +151,13 @@ if args.MTC:
             imgs.requires_grad_(True)
             y = y.cuda()
             pred = MTC_model(imgs)
-            loss, loss1 = MTC_loss(pred, y, u, imgs, args.beta)
+            loss, loss1 = MTC_loss(pred, y, u, imgs, args.beta, args.batch_size)
             imgs.requires_grad_(False)
             loss.backward()
             train_loss += loss.item()
             CE_loss += loss1.item()
             _,preds=torch.max(pred,1)    
-            correct+=torch.sum(preds==y.data) 
+            correct+=torch.sum(preds==y.data).item()
 
             optimizer.step()
 
@@ -166,17 +166,18 @@ if args.MTC:
         with torch.no_grad():  
             for val_input,val_labels in test_loader:  
                 val_input=val_input.view(batch_size, -1).cuda()
-                val_outputs=model(val_input)  
-                val_loss1=criteron(val_outputs,val_labels)   
-                _,val_preds=torch.max(val_outputs,1)  
+                val_labels = val_labels.cuda()
+                val_outputs=MTC_model(val_input)
+                val_loss1=criterion(val_outputs, val_labels)   
+                _,val_preds=torch.max(val_outputs, 1)  
                 val_loss+=val_loss1.item()  
-                val_correct+=torch.sum(val_preds==val_labels.data)  
+                val_correct+=torch.sum(val_preds==val_labels.data).item()
 
         writer.add_scalar('Loss/train_CE_Loss', (CE_loss / epoch_size), epoch)
-        writer.add_scalar('Loss/val_CE_Loss', (val_loss / epoch_size), epoch)
-        writer.add_scalar('Acc/train', (correct / (epoch_size*batch_size), epoch))
-        writer.add_scalar('Acc/val', (val_correct / (epoch_size*batch_size), epoch))
-        print(step, train_loss/epoch_size, CE_loss/epoch_size, correct / (epoch_size*batch_size), val_correct / (epoch_size*batch_size))
+        writer.add_scalar('Loss/val_CE_Loss', (val_loss / test_epoch_size), epoch)
+        writer.add_scalar('Acc/train', (correct / (epoch_size*batch_size)), epoch)
+        writer.add_scalar('Acc/val', (val_correct / (test_epoch_size*batch_size)), epoch)
+        print(epoch, train_loss/epoch_size, CE_loss/epoch_size, (val_loss / test_epoch_size), correct / (epoch_size*batch_size), val_correct / (test_epoch_size*batch_size))
 
 
 #if CAEH + KNN

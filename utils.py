@@ -25,7 +25,7 @@ def cae_h_loss(imgs, imgs_noise,  recover, code_data, code_data_noise, lambd, ga
     
     return loss, loss1
 
-def MTC_loss(pred, y, u, imgs, beta):
+def MTC_loss(pred, y, u, imgs, beta, batch_size):
     grad_output=torch.ones(batch_size).cuda()
     
     criterion = nn.CrossEntropyLoss()
@@ -54,11 +54,15 @@ def calculate_singular_vectors_B(model, train_loader, dM, batch_size):
             Jx.append(torch.autograd.grad(outputs=code_data[:,i], inputs=imgs, grad_outputs=grad_output, retain_graph=True)[0])
         Jx=torch.reshape(torch.cat(Jx,1),[batch_size, code_data.shape[1], imgs.shape[1]])
         u, _, _ = torch.svd(torch.transpose(Jx, 1, 2))
-        u=u[:,:,:dM]
+        u=u[:,:,:dM].detach().cpu()
+        
         U.append(u)
         if step%100 == 0:
             print("calculating U:", step)
-    U = torch.stack(U)
+    U = torch.stack(U).cuda()
+    del Jx
+    del u
+    torch.cuda.empty_cache()
     return U
 
 
