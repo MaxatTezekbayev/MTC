@@ -59,7 +59,7 @@ def calculate_singular_vectors_B(model, train_loader, dM, batch_size):
         U.append(u)
         if step%100 == 0:
             print("calculating U:", step)
-    U = torch.stack(U).cuda()
+    U = torch.stack(U)
     del Jx
     del u
     torch.cuda.empty_cache()
