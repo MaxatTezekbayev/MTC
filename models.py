@@ -91,7 +91,7 @@ class ALTER2Layer(nn.Module):
         torch.nn.init.constant_(self.b3, 0.1)
         torch.nn.init.constant_(self.b_r, 0.1)
 
-    def forward(self, x, jacobian = False):
+    def forward(self, x, calculate_jacobian = False):
         #encode
         code_data1 = self.sigmoid(torch.matmul(x, self.W1.t()) + self.b1)
         code_data2 = self.sigmoid(torch.matmul(code_data1, self.W2.t()) + self.b2)
