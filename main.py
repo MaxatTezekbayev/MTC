@@ -7,8 +7,8 @@ from torch.utils.data import SubsetRandomSampler
 from torchvision import datasets, transforms
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
-from models import CAE1Layer, CAE2Layer, MTC
-from utils import cae_h_loss, MTC_loss, calculate_singular_vectors_B, knn_distances, sigmoid
+from models import CAE1Layer, CAE2Layer, MTC, ALTER2Layer
+from utils import cae_h_loss, MTC_loss, alter_loss, calculate_B_alter, calculate_singular_vectors_B, knn_distances, sigmoid
 import argparse
 from collections import Counter
 torch.manual_seed(42)
