@@ -137,9 +137,9 @@ class ALTER2Layer(nn.Module):
 
         if x is not None:
             batch_size = x.shape[0]
-        elif x_noise is not None::
+        elif x_noise is not None:
             batch_size = x_noise.shape[0]
-        elif z is not None::
+        elif z is not None:
             batch_size = z.shape[0]
         #jacobian for Alternating algorithm is from recover wrt input
         #autograd is slower
