@@ -232,13 +232,13 @@ if args.ALTER:
                 for test_x, _ in test_loader:
                     test_x = test_x.view(batch_size, -1).cuda()
                     test_recover, _ = model(test_x)
-                    test_loss += MSELoss(test_recover, test_imgs).item()
+                    test_loss += MSELoss(test_recover, test_x).item()
 
             writer.add_scalar('ALTER/Loss/train', (train_loss / num_batches), epoch)
             writer.add_scalar('ALTER/Loss/train_MSE', (MSE_loss / num_batches), epoch)
             writer.add_scalar('ALTER/Loss/test_MSE', (test_loss / test_num_batches), epoch)
             print(epoch, train_loss/num_batches)
-            
+
         B = calculate_B_alter(model, train_z_loader, k, batch_size)
     #end of training
 
