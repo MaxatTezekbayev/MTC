@@ -112,7 +112,7 @@ class ALTER2Layer(nn.Module):
         torch.nn.init.constant_(self.b3, 0.1)
         torch.nn.init.constant_(self.b_r, 0.1)
 
-    def forward(self, x, x_noise, z, calculate_jacobian = False):
+    def forward(self, x, x_noise = None, z = None, calculate_jacobian = False):
         #encode
         code_data1 = self.sigmoid(torch.matmul(x, self.W1.t()) + self.b1)
         code_data2 = self.sigmoid(torch.matmul(code_data1, self.W2.t()) + self.b2)
@@ -120,17 +120,18 @@ class ALTER2Layer(nn.Module):
         code_data3 = self.sigmoid(torch.matmul(code_data2, self.W2) + self.b3)
         recover = self.sigmoid(torch.matmul(code_data3, self.W1) + self.b_r)
 
-        code_data1_noise = self.sigmoid(torch.matmul(x_noise, self.W1.t()) + self.b1)
-        code_data2_noise  = self.sigmoid(torch.matmul(code_data1_noise, self.W2.t()) + self.b2)
-        #decode
-        code_data3_noise  = self.sigmoid(torch.matmul(code_data2_noise, self.W2) + self.b3)
-        recover_noise  = self.sigmoid(torch.matmul(code_data3_noise, self.W1) + self.b_r)
+        if (x_noise is not None) and (z is not None):
+            code_data1_noise = self.sigmoid(torch.matmul(x_noise, self.W1.t()) + self.b1)
+            code_data2_noise  = self.sigmoid(torch.matmul(code_data1_noise, self.W2.t()) + self.b2)
+            #decode
+            code_data3_noise  = self.sigmoid(torch.matmul(code_data2_noise, self.W2) + self.b3)
+            recover_noise  = self.sigmoid(torch.matmul(code_data3_noise, self.W1) + self.b_r)
 
-        code_data1_z = self.sigmoid(torch.matmul(z, self.W1.t()) + self.b1)
-        code_data2_z  = self.sigmoid(torch.matmul(code_data1_z, self.W2.t()) + self.b2)
-        #decode
-        code_data3_z  = self.sigmoid(torch.matmul(code_data2_z, self.W2) + self.b3)
-        recover_z  = self.sigmoid(torch.matmul(code_data3_z, self.W1) + self.b_r)
+            code_data1_z = self.sigmoid(torch.matmul(z, self.W1.t()) + self.b1)
+            code_data2_z  = self.sigmoid(torch.matmul(code_data1_z, self.W2.t()) + self.b2)
+            #decode
+            code_data3_z  = self.sigmoid(torch.matmul(code_data2_z, self.W2) + self.b3)
+            recover_z  = self.sigmoid(torch.matmul(code_data3_z, self.W1) + self.b_r)
 
 
         batch_size = x.shape[0]
