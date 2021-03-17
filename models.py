@@ -68,6 +68,54 @@ class CAE2Layer(nn.Module):
         else:
             return recover, code_data2
 
+class ALTER2Layer(nn.Module):
+    def __init__(self, dimensionality, code_sizes):
+        super(ALTER2Layer, self).__init__()
+        self.code_size=code_sizes[-1]
+        # parameters
+        self.W1 = nn.Parameter(torch.Tensor(code_sizes[0], dimensionality))
+        self.b1 = nn.Parameter(torch.Tensor(code_sizes[0]))
+        self.W2 = nn.Parameter(torch.Tensor(code_sizes[1], code_sizes[0]))
+        self.b2 = nn.Parameter(torch.Tensor(code_sizes[1]))
+        self.b3 = nn.Parameter(torch.Tensor(code_sizes[0]))
+        self.b_r = nn.Parameter(torch.Tensor(dimensionality))
+
+        self.sigmoid = torch.nn.Sigmoid()
+        # init
+        torch.nn.init.normal_(self.W1, mean=0.0, std=1.0)
+        torch.nn.init.normal_(self.W2, mean=0.0, std=1.0)
+
+
+        torch.nn.init.constant_(self.b1, 0.1)
+        torch.nn.init.constant_(self.b2, 0.1)
+        torch.nn.init.constant_(self.b3, 0.1)
+        torch.nn.init.constant_(self.b_r, 0.1)
+
+    def forward(self, x, x_noise=None, z=None):
+        #encode
+        code_data1 = self.sigmoid(torch.matmul(x, self.W1.t()) + self.b1)
+        code_data2 = self.sigmoid(torch.matmul(code_data1, self.W2.t()) + self.b2)
+        #decode
+        code_data3 = self.sigmoid(torch.matmul(code_data2, self.W2) + self.b3)
+        recover = self.sigmoid(torch.matmul(code_data3, self.W1) + self.b_r)
+
+        if (x_noise is not None) and (z is not None):
+            code_data_noise1 = torch.sigmoid(torch.matmul(x_noise, self.W1.t()) + self.b1)
+            code_data_noise2 = torch.sigmoid(torch.matmul(code_data_noise1, self.W2.t()) + self.b2)
+            code_data_noise3 = self.sigmoid(torch.matmul(code_data_noise2, self.W2) + self.b3)
+            recover_noise = self.sigmoid(torch.matmul(code_data_noise3, self.W1) + self.b_r)
+
+            code_data_z1 =  torch.sigmoid(torch.matmul(z, self.W1.t()) + self.b1)
+            code_data_z2 = torch.sigmoid(torch.matmul(code_data_z1, self.W2.t()) + self.b2)
+            code_data_z3 = self.sigmoid(torch.matmul(code_data_z2, self.W2) + self.b3)
+            recover_z = self.sigmoid(torch.matmul(code_data_z3, self.W1) + self.b_r)
+
+            return recover, code_data2, recover_noise, recover_z
+        else:
+            return recover, code_data2
+
+
+
 
 class MTC(nn.Module):
     def __init__(self, CAE_model, output_dim):
