@@ -112,21 +112,23 @@ class ALTER2Layer(nn.Module):
         torch.nn.init.constant_(self.b3, 0.1)
         torch.nn.init.constant_(self.b_r, 0.1)
 
-    def forward(self, x, x_noise = None, z = None, calculate_jacobian = False):
-        #encode
-        code_data1 = self.sigmoid(torch.matmul(x, self.W1.t()) + self.b1)
-        code_data2 = self.sigmoid(torch.matmul(code_data1, self.W2.t()) + self.b2)
-        #decode
-        code_data3 = self.sigmoid(torch.matmul(code_data2, self.W2) + self.b3)
-        recover = self.sigmoid(torch.matmul(code_data3, self.W1) + self.b_r)
+    def forward(self, x=None, x_noise = None, z = None, calculate_jacobian = False):
+        if x is not None:
+            #encode
+            code_data1 = self.sigmoid(torch.matmul(x, self.W1.t()) + self.b1)
+            code_data2 = self.sigmoid(torch.matmul(code_data1, self.W2.t()) + self.b2)
+            #decode
+            code_data3 = self.sigmoid(torch.matmul(code_data2, self.W2) + self.b3)
+            recover = self.sigmoid(torch.matmul(code_data3, self.W1) + self.b_r)
 
-        if (x_noise is not None) and (z is not None):
+        if x_noise is not None:
             code_data1_noise = self.sigmoid(torch.matmul(x_noise, self.W1.t()) + self.b1)
             code_data2_noise  = self.sigmoid(torch.matmul(code_data1_noise, self.W2.t()) + self.b2)
             #decode
             code_data3_noise  = self.sigmoid(torch.matmul(code_data2_noise, self.W2) + self.b3)
             recover_noise  = self.sigmoid(torch.matmul(code_data3_noise, self.W1) + self.b_r)
 
+        if z is not None:
             code_data1_z = self.sigmoid(torch.matmul(z, self.W1.t()) + self.b1)
             code_data2_z  = self.sigmoid(torch.matmul(code_data1_z, self.W2.t()) + self.b2)
             #decode
@@ -134,23 +136,24 @@ class ALTER2Layer(nn.Module):
             recover_z  = self.sigmoid(torch.matmul(code_data3_z, self.W1) + self.b_r)
 
 
-            batch_size = x.shape[0]
-            #jacobian for Alternating algorithm is from recover wrt input
-            #autograd is slower
-            #automatic:
-                # grad_output=torch.ones(batch_size).cuda()
-                # Jac=[]                                                                                        
-                # for i in range(recover.shape[1]):
-                #     Jac.append(torch.autograd.grad(outputs=recover[:,i], inputs=x, grad_outputs=grad_output, retain_graph=True, create_graph=True)[0])
-                # Jac=torch.reshape(torch.cat(Jac,1),[batch_size, recover.shape[1], x.shape[1]])
+        batch_size = x.shape[0]
+        #jacobian for Alternating algorithm is from recover wrt input
+        #autograd is slower
+        #automatic:
+            # grad_output=torch.ones(batch_size).cuda()
+            # Jac=[]                                                                                        
+            # for i in range(recover.shape[1]):
+            #     Jac.append(torch.autograd.grad(outputs=recover[:,i], inputs=x, grad_outputs=grad_output, retain_graph=True, create_graph=True)[0])
+            # Jac=torch.reshape(torch.cat(Jac,1),[batch_size, recover.shape[1], x.shape[1]])
+    
+        #https://wiseodd.github.io/techblog/2016/12/05/contractive-autoencoder/
         
-            #https://wiseodd.github.io/techblog/2016/12/05/contractive-autoencoder/
-            
-            if calculate_jacobian:
-                Jac = []
-                Jac_noise = []
-                Jac_z = []
-                for i in range(batch_size): 
+        if calculate_jacobian:
+            Jac = []
+            Jac_noise = []
+            Jac_z = []
+            for i in range(batch_size): 
+                if x is not None:
                     diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1[i], code_data1[i]))
                     grad_1 = torch.matmul(self.W1.T, diag_sigma_prime1)
         
@@ -163,6 +166,7 @@ class ALTER2Layer(nn.Module):
                     grad_4 = self.W1
                     Jac.append(torch.matmul(grad_1, torch.matmul(grad_2, torch.matmul(grad_3, grad_4))))
 
+                if x_noise is not None:
                     #x_noise
                     diag_sigma_prime1_noise = torch.diag( torch.mul(1.0 - code_data1_noise[i], code_data1_noise[i]))
                     grad_1_noise = torch.matmul(self.W1.T, diag_sigma_prime1_noise)
@@ -175,7 +179,7 @@ class ALTER2Layer(nn.Module):
             
                     grad_4_noise = self.W1
                     Jac_noise.append(torch.matmul(grad_1_noise, torch.matmul(grad_2_noise, torch.matmul(grad_3_noise, grad_4_noise))))
-
+                if z is not None:
                     #z
                     diag_sigma_prime1_z = torch.diag( torch.mul(1.0 - code_data1_z[i], code_data1_z[i]))
                     grad_1_z = torch.matmul(self.W1.T, diag_sigma_prime1_z)
@@ -191,11 +195,11 @@ class ALTER2Layer(nn.Module):
 
 
 
-
-                Jac = torch.reshape(torch.cat(Jac,1), [batch_size, recover.shape[1], x.shape[1]])
-                Jac_noise = torch.reshape(torch.cat(Jac_noise,1), [batch_size, recover_noise.shape[1], x_noise.shape[1]])
-                Jac_z = torch.reshape(torch.cat(Jac_z,1), [batch_size, recover_z.shape[1], z.shape[1]])
-                return recover, code_data2, Jac, Jac_noise, Jac_z
+            
+            Jac = torch.reshape(torch.cat(Jac,1), [batch_size, recover.shape[1], x.shape[1]]) if x is not None else None
+            Jac_noise = torch.reshape(torch.cat(Jac_noise,1), [batch_size, recover_noise.shape[1], x_noise.shape[1]]) if x_noise is not None else None
+            Jac_z = torch.reshape(torch.cat(Jac_z,1), [batch_size, recover_z.shape[1], z.shape[1]]) if z is not None else None
+            return recover, code_data2, Jac, Jac_noise, Jac_z
         return recover,  code_data2 
 
 

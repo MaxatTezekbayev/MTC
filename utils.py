@@ -58,7 +58,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
     for step, (z, _) in enumerate(train_z_loader):
         z = z.view(batch_size, -1).cuda()
         z.requires_grad_(True)
-        recover_z, code_data_z, Jac_z = model(z, calculate_jacobian=True)
+        recover, code_data, Jac, Jac_noise, Jac_z  = model(None, None, z, calculate_jacobian=True)
         
         u, sigma, v = torch.svd(Jac_z)
         u = u[:, :, :k]
