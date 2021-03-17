@@ -121,7 +121,7 @@ class ALTER2Layer(nn.Module):
                 diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3[i], code_data3[i]))
                 grad_2 = torch.matmul(self.W2, diag_sigma_prime3)
         
-                grad_4 = W1
+                grad_4 = self.W1
                 Jac.append(torch.matmul(grad_1, torch.matmul(grad_2, torch.matmul(grad_3, grad_4))))
             return recover, code_data2, Jac
         return recover,  code_data2, 
