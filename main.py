@@ -197,12 +197,12 @@ if args.ALTER:
             for step, (imgs, _) in enumerate(train_loader):
                 #to always get some batch of z
                 try:
-                    z = next(train_z_iterator)
+                    z = next(train_z_iterator)[0]
                     b = next(B_iter)
                 except StopIteration:
                     train_z_iterator = iter(train_z_iterator)
                     B_iter = iter(B)
-                    z = next(dataloader_iterator)
+                    z = next(train_z_iterator)[0]
                     b = next(B_iter)
 
                 imgs = imgs.view(batch_size, -1).cuda()
