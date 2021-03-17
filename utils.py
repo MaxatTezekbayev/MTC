@@ -93,7 +93,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
         b = torch.matmul(u, torch.matmul(sigma, v))
         B.append(b.cpu())
 
-    B = torch.stack(b)
+    B = torch.stack(B)
     del dgdx_z
     del b
     return B
