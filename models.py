@@ -135,8 +135,12 @@ class ALTER2Layer(nn.Module):
             code_data3_z  = self.sigmoid(torch.matmul(code_data2_z, self.W2) + self.b3)
             recover_z  = self.sigmoid(torch.matmul(code_data3_z, self.W1) + self.b_r)
 
-
-        batch_size = x.shape[0]
+        if x is not None:
+            batch_size = x.shape[0]
+        elif x_noise is not None::
+            batch_size = x_noise.shape[0]
+        elif z is not None::
+            batch_size = z.shape[0]
         #jacobian for Alternating algorithm is from recover wrt input
         #autograd is slower
         #automatic:
