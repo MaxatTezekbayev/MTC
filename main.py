@@ -199,7 +199,7 @@ if args.ALTER:
                 try:
                     z = next(train_z_iterator)[0]
                     b = next(B_iter)
-                except:
+                except
                     train_z_iterator = iter(train_z_iterator)
                     B_iter = iter(B)
                     z = next(train_z_iterator)[0]
