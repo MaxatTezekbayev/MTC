@@ -133,20 +133,18 @@ if args.pretrained_CAEH:
 
 # train CAE+H
 elif args.train_CAEH is True:
-    writer = SummaryWriter(
-        'runs/' + "_".join(map(str, ["caeh", args.code_size, args.code_size2, args.learning_rate, args.lambd, args.gamma, args.epsilon])))
+    writer = SummaryWriter('runs/' + "_".join(map(str, ["caeh", args.code_size, args.code_size2, args.learning_rate, args.lambd, args.gamma, args.epsilon])))
     MSELoss = nn.MSELoss()
     for epoch in range(args.epochs):
         train_loss = 0
         test_loss = 0
         MSE_loss = 0
-        for step, (imgs, _) in enumerate(train_loader):
-            imgs = imgs.view(batch_size, -1).cuda()
-            imgs.requires_grad_(True)
-            imgs_noise = torch.autograd.Variable(imgs.data + torch.normal(
-                0, args.epsilon, size=[batch_size, dimensionality]).cuda(), requires_grad=True)
+        for step, (x, _) in enumerate(train_loader):
+            x = x.view(batch_size, -1).cuda()
+            x.requires_grad_(True)
+            x_noise = torch.autograd.Variable(x.data + torch.normal(0, args.epsilon, size=[batch_size, dimensionality]).cuda(), requires_grad=True)
 
-            recover, code_data, code_data_noise = model(imgs, imgs_noise)
+            recover, code_data, code_data_noise = model(x, calculate_jacobian=True)
             loss, loss1 = cae_h_loss(imgs, imgs_noise, recover, code_data,
                                      code_data_noise, args.lambd, args.gamma, batch_size)
 
@@ -212,11 +210,9 @@ if args.ALTER:
                 z.requires_grad_(True)
                 x_noise = torch.autograd.Variable(x.data + torch.normal(0, args.epsilon, size=[batch_size, dimensionality]).cuda(), requires_grad=True)
 
-                recover, code_data, Jac = model(x, calculate_jacobian=True)
-                recover_noise, code_data_noise, Jac_noise = model(x_noise, calculate_jacobian=True)
-                recover_z, code_data_z, Jac_z = model(z, calculate_jacobian=True)
+                recover, code_data, Jac, Jac_noise, Jac_z = model(x, x_noise, z, calculate_jacobian=True)
 
-                loss, loss1 = alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, args.lambd, args.gamma, batch_size)
+                loss, loss1 = alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, args.lambd, args.gamma)
 
                 x.requires_grad_(False)
                 x_noise.requires_grad_(False)
