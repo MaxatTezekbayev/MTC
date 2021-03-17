@@ -200,7 +200,7 @@ if args.ALTER:
                     z = next(train_z_iterator)[0]
                     b = next(B_iter)
                 except:
-                    train_z_iterator = iter(train_z_iterator)
+                    train_z_iterator = iter(train_z_loader)
                     B_iter = iter(B)
                     z = next(train_z_iterator)[0]
                     b = next(B_iter)
