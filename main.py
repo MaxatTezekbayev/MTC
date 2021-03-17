@@ -206,7 +206,7 @@ if args.ALTER:
                     b = next(B_iter)
 
                 imgs = imgs.view(batch_size, -1).cuda()
-                z = z.cuda()
+                z = z.view(batch_size, -1).cuda()
                 b = b.cuda()
                 z.requires_grad_(True)
                 imgs.requires_grad_(True)
