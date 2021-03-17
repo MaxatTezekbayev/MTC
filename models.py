@@ -110,8 +110,9 @@ class ALTER2Layer(nn.Module):
     
         #https://wiseodd.github.io/techblog/2016/12/05/contractive-autoencoder/
         Jac = []
+        batch_size = x.shape[0]
         if calculate_jacobian:
-            for i in range(x.shape[0]): #batch_size
+            for i in range(batch_size): 
                 diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1[i], code_data1[i]))
                 grad_1 = torch.matmul(self.W1.T, diag_sigma_prime1)
     
@@ -123,6 +124,7 @@ class ALTER2Layer(nn.Module):
         
                 grad_4 = self.W1
                 Jac.append(torch.matmul(grad_1, torch.matmul(grad_2, torch.matmul(grad_3, grad_4))))
+            Jac = torch.reshape(torch.cat(Jac,1),[batch_size, recover.shape[1], x.shape[1]])
             return recover, code_data2, Jac
         return recover,  code_data2, 
 
