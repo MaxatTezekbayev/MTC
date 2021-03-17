@@ -26,8 +26,8 @@ def cae_h_loss(imgs, imgs_noise,  recover, code_data, code_data_noise, lambd, ga
     return loss, loss1
 
 def alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, lambd, gamma):
-    
-    loss1 = nn.MSELoss(recover, x)
+    criterion = nn.MSELoss()
+    loss1 = criterion(recover, x)
     loss2 = torch.mean(torch.sum(torch.pow(Jac - Jac_noise, 2), dim = [1, 2]))
     loss3 = torch.mean(torch.sum(torch.pow(Jac_z - b, 2), dim = [1 ,2]))
     loss = loss1 + (gamma * loss2) + lambd * loss3
