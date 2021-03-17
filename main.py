@@ -116,7 +116,7 @@ if args.CAEH:
         raise Exception("Sorry, numlayers only 1 or 2")
 
 elif args.ALTER:
-    args.numlayers == 2:
+    if args.numlayers == 2:
         model = ALTER2Layer(dimensionality, [args.code_size, args.code_size2])
     else:
         raise Exception("Sorry, numlayers only 2")
