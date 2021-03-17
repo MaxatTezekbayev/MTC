@@ -191,10 +191,9 @@ if args.ALTER:
             test_loss = 0
             MSE_loss = 0
 
-
             train_z_iterator = iter(train_z_loader)
             B_iter = iter(B)
-            for step, (imgs, _) in enumerate(train_loader):
+            for step, (x, _) in enumerate(train_loader):
                 #to always get some batch of z
                 try:
                     z = next(train_z_iterator)[0]
@@ -205,18 +204,22 @@ if args.ALTER:
                     z = next(train_z_iterator)[0]
                     b = next(B_iter)
 
-                imgs = imgs.view(batch_size, -1).cuda()
+                x = x.view(batch_size, -1).cuda()
                 z = z.view(batch_size, -1).cuda()
                 b = b.cuda()
+                
+                x.requires_grad_(True)
                 z.requires_grad_(True)
-                imgs.requires_grad_(True)
-                imgs_noise = torch.autograd.Variable(imgs.data + torch.normal(0, args.epsilon, size=[batch_size, dimensionality]).cuda(), requires_grad=True)
+                x_noise = torch.autograd.Variable(x.data + torch.normal(0, args.epsilon, size=[batch_size, dimensionality]).cuda(), requires_grad=True)
 
-                recover, code_data, recover_noise, recover_z = model(imgs, imgs_noise, z)
-                loss, loss1 = alter_loss(imgs, imgs_noise, z, recover, code_data, recover_noise, recover_z, b, args.lambd, args.gamma, batch_size)
+                recover, code_data, Jac = model(x, calculate_jacobian=True)
+                recover_noise, code_data_noise, Jac_noise = model(x_noise, calculate_jacobian=True)
+                recover_z, code_data_z, Jac_z = model(z, calculate_jacobian=True)
 
-                imgs.requires_grad_(False)
-                imgs_noise.requires_grad_(False)
+                loss, loss1 = alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, args.lambd, args.gamma, batch_size)
+
+                x.requires_grad_(False)
+                x_noise.requires_grad_(False)
                 z.requires_grad_(False)
                 loss.backward()
 
@@ -226,19 +229,16 @@ if args.ALTER:
                 optimizer.zero_grad()
 
             with torch.no_grad():
-                for test_imgs, _ in test_loader:
-                    test_imgs = test_imgs.view(batch_size, -1).cuda()
-                    test_recover, _ = model(test_imgs)
+                for test_x, _ in test_loader:
+                    test_x = test_x.view(batch_size, -1).cuda()
+                    test_recover, _ = model(test_x)
                     test_loss += MSELoss(test_recover, test_imgs).item()
 
             writer.add_scalar('ALTER/Loss/train', (train_loss / num_batches), epoch)
-            writer.add_scalar('ALTER/Loss/train_MSE',
-                              (MSE_loss / num_batches), epoch)
-            writer.add_scalar('ALTER/Loss/test_MSE',
-                              (test_loss / test_num_batches), epoch)
-
-            if epoch % 5 == 0:
-                print(epoch, train_loss/num_batches)
+            writer.add_scalar('ALTER/Loss/train_MSE', (MSE_loss / num_batches), epoch)
+            writer.add_scalar('ALTER/Loss/test_MSE', (test_loss / test_num_batches), epoch)
+            print(epoch, train_loss/num_batches)
+            
         B = calculate_B_alter(model, train_z_loader, k, batch_size)
     #end of training
 
