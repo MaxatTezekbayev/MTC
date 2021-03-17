@@ -134,68 +134,68 @@ class ALTER2Layer(nn.Module):
             recover_z  = self.sigmoid(torch.matmul(code_data3_z, self.W1) + self.b_r)
 
 
-        batch_size = x.shape[0]
-        #jacobian for Alternating algorithm is from recover wrt input
-        #autograd is slower
-        #automatic:
-            # grad_output=torch.ones(batch_size).cuda()
-            # Jac=[]                                                                                        
-            # for i in range(recover.shape[1]):
-            #     Jac.append(torch.autograd.grad(outputs=recover[:,i], inputs=x, grad_outputs=grad_output, retain_graph=True, create_graph=True)[0])
-            # Jac=torch.reshape(torch.cat(Jac,1),[batch_size, recover.shape[1], x.shape[1]])
-    
-        #https://wiseodd.github.io/techblog/2016/12/05/contractive-autoencoder/
+            batch_size = x.shape[0]
+            #jacobian for Alternating algorithm is from recover wrt input
+            #autograd is slower
+            #automatic:
+                # grad_output=torch.ones(batch_size).cuda()
+                # Jac=[]                                                                                        
+                # for i in range(recover.shape[1]):
+                #     Jac.append(torch.autograd.grad(outputs=recover[:,i], inputs=x, grad_outputs=grad_output, retain_graph=True, create_graph=True)[0])
+                # Jac=torch.reshape(torch.cat(Jac,1),[batch_size, recover.shape[1], x.shape[1]])
         
-        if calculate_jacobian:
-            Jac = []
-            Jac_noise = []
-            Jac_z = []
-            for i in range(batch_size): 
-                diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1[i], code_data1[i]))
-                grad_1 = torch.matmul(self.W1.T, diag_sigma_prime1)
-    
-                diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data2[i], code_data2[i]))
-                grad_2 = torch.matmul(self.W2.T, diag_sigma_prime2)
+            #https://wiseodd.github.io/techblog/2016/12/05/contractive-autoencoder/
+            
+            if calculate_jacobian:
+                Jac = []
+                Jac_noise = []
+                Jac_z = []
+                for i in range(batch_size): 
+                    diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1[i], code_data1[i]))
+                    grad_1 = torch.matmul(self.W1.T, diag_sigma_prime1)
         
-                diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3[i], code_data3[i]))
-                grad_3 = torch.matmul(self.W2, diag_sigma_prime3)
-        
-                grad_4 = self.W1
-                Jac.append(torch.matmul(grad_1, torch.matmul(grad_2, torch.matmul(grad_3, grad_4))))
+                    diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data2[i], code_data2[i]))
+                    grad_2 = torch.matmul(self.W2.T, diag_sigma_prime2)
+            
+                    diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3[i], code_data3[i]))
+                    grad_3 = torch.matmul(self.W2, diag_sigma_prime3)
+            
+                    grad_4 = self.W1
+                    Jac.append(torch.matmul(grad_1, torch.matmul(grad_2, torch.matmul(grad_3, grad_4))))
 
-                #x_noise
-                diag_sigma_prime1_noise = torch.diag( torch.mul(1.0 - code_data1_noise[i], code_data1_noise[i]))
-                grad_1_noise = torch.matmul(self.W1.T, diag_sigma_prime1_noise)
-    
-                diag_sigma_prime2_noise = torch.diag( torch.mul(1.0 - code_data2_noise[i], code_data2_noise[i]))
-                grad_2_noise = torch.matmul(self.W2.T, diag_sigma_prime2_noise)
+                    #x_noise
+                    diag_sigma_prime1_noise = torch.diag( torch.mul(1.0 - code_data1_noise[i], code_data1_noise[i]))
+                    grad_1_noise = torch.matmul(self.W1.T, diag_sigma_prime1_noise)
         
-                diag_sigma_prime3_noise  = torch.diag( torch.mul(1.0 - code_data3_noise[i], code_data3_noise[i]))
-                grad_3_noise = torch.matmul(self.W2, diag_sigma_prime3_noise)
-        
-                grad_4_noise = self.W1
-                Jac_noise.append(torch.matmul(grad_1_noise, torch.matmul(grad_2_noise, torch.matmul(grad_3_noise, grad_4_noise))))
+                    diag_sigma_prime2_noise = torch.diag( torch.mul(1.0 - code_data2_noise[i], code_data2_noise[i]))
+                    grad_2_noise = torch.matmul(self.W2.T, diag_sigma_prime2_noise)
+            
+                    diag_sigma_prime3_noise  = torch.diag( torch.mul(1.0 - code_data3_noise[i], code_data3_noise[i]))
+                    grad_3_noise = torch.matmul(self.W2, diag_sigma_prime3_noise)
+            
+                    grad_4_noise = self.W1
+                    Jac_noise.append(torch.matmul(grad_1_noise, torch.matmul(grad_2_noise, torch.matmul(grad_3_noise, grad_4_noise))))
 
-                #z
-                diag_sigma_prime1_z = torch.diag( torch.mul(1.0 - code_data1_z[i], code_data1_z[i]))
-                grad_1_z = torch.matmul(self.W1.T, diag_sigma_prime1_z)
-    
-                diag_sigma_prime2_z = torch.diag( torch.mul(1.0 - code_data2_z[i], code_data2_z[i]))
-                grad_2_z = torch.matmul(self.W2.T, diag_sigma_prime2_z)
+                    #z
+                    diag_sigma_prime1_z = torch.diag( torch.mul(1.0 - code_data1_z[i], code_data1_z[i]))
+                    grad_1_z = torch.matmul(self.W1.T, diag_sigma_prime1_z)
         
-                diag_sigma_prime3_z  = torch.diag( torch.mul(1.0 - code_data3_z[i], code_data3_z[i]))
-                grad_3_z = torch.matmul(self.W2, diag_sigma_prime3_z)
-        
-                grad_4_z = self.W1
-                Jac_z.append(torch.matmul(grad_1_z, torch.matmul(grad_2_z, torch.matmul(grad_3_z, grad_4_z))))
-
-
+                    diag_sigma_prime2_z = torch.diag( torch.mul(1.0 - code_data2_z[i], code_data2_z[i]))
+                    grad_2_z = torch.matmul(self.W2.T, diag_sigma_prime2_z)
+            
+                    diag_sigma_prime3_z  = torch.diag( torch.mul(1.0 - code_data3_z[i], code_data3_z[i]))
+                    grad_3_z = torch.matmul(self.W2, diag_sigma_prime3_z)
+            
+                    grad_4_z = self.W1
+                    Jac_z.append(torch.matmul(grad_1_z, torch.matmul(grad_2_z, torch.matmul(grad_3_z, grad_4_z))))
 
 
-            Jac = torch.reshape(torch.cat(Jac,1), [batch_size, recover.shape[1], x.shape[1]])
-            Jac_noise = torch.reshape(torch.cat(Jac_noise,1), [batch_size, recover_noise.shape[1], x_noise.shape[1]])
-            Jac_z = torch.reshape(torch.cat(Jac_z,1), [batch_size, recover_z.shape[1], z.shape[1]])
-            return recover, code_data2, Jac, Jac_noise, Jac_z
+
+
+                Jac = torch.reshape(torch.cat(Jac,1), [batch_size, recover.shape[1], x.shape[1]])
+                Jac_noise = torch.reshape(torch.cat(Jac_noise,1), [batch_size, recover_noise.shape[1], x_noise.shape[1]])
+                Jac_z = torch.reshape(torch.cat(Jac_z,1), [batch_size, recover_z.shape[1], z.shape[1]])
+                return recover, code_data2, Jac, Jac_noise, Jac_z
         return recover,  code_data2 
 
 
