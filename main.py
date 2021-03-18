@@ -8,7 +8,8 @@ from torchvision import datasets, transforms
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from models import CAE1Layer, CAE2Layer, MTC, ALTER2Layer
-from utils import cae_h_loss, MTC_loss, alter_loss, calculate_B_alter, calculate_singular_vectors_B, knn_distances, sigmoid
+from utils import cae_h_loss, MTC_loss, alter_loss, calculate_B_alter, calculate_singular_vectors_B, knn_distances, sigmoid, Jacobian_for_ALTER
+
 import argparse
 from collections import Counter
 torch.manual_seed(42)
@@ -210,8 +211,11 @@ if args.ALTER:
                 z.requires_grad_(True)
                 x_noise = torch.autograd.Variable(x.data + torch.normal(0, args.epsilon, size=[batch_size, dimensionality]).cuda(), requires_grad=True)
 
-                recover, code_data, Jac, Jac_noise, Jac_z = model(x, x_noise, z, calculate_jacobian=True)
-
+                recover, code_data, code_data_noise, code_data_z = model(x, x_noise, z)
+                #code_data is list of [code_data1, code_data2, code_data3]
+                Jac = Jacobian_for_ALTER(model, code_data)
+                Jac_noise = Jacobian_for_ALTER(model, code_data_noise)
+                Jac_z = Jacobian_for_ALTER(model, code_data_z)
                 loss, loss1 = alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, args.lambd, args.gamma)
 
                 x.requires_grad_(False)

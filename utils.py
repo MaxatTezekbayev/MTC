@@ -4,6 +4,23 @@ import torch.nn as nn
 
 
 
+def Jacobian_for_ALTER(model, code_data):
+    Jac=[]
+    for i in range(code_data[0].shape[0]): #batch_size
+        diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data[0][i], code_data[0][i]))
+        grad_1 = torch.matmul(model.W1.T, diag_sigma_prime1)
+
+        diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data[1][i], code_data[1][i]))
+        grad_2 = torch.matmul(model.W2.T, diag_sigma_prime2)
+
+        diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data[2][i], code_data[2][i]))
+        grad_3 = torch.matmul(model.W2, diag_sigma_prime3)
+
+        grad_4 = model.W1
+        Jac.append(torch.matmul(grad_1, torch.matmul(grad_2, torch.matmul(grad_3, grad_4))))
+    Jac = torch.reshape(torch.cat(Jac,1),[code_data[0].shape[0], model.W1.shape[1],  model.W1.shape[1]]) #[batch_size, recover.shape[1], x.shape[1]]
+    return Jac
+
 def cae_h_loss(imgs, imgs_noise,  recover, code_data, code_data_noise, lambd, gamma, batch_size):
     criterion = nn.MSELoss()
     loss1=criterion(recover, imgs)
@@ -58,8 +75,10 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
     for step, (z, _) in enumerate(train_z_loader):
         z = z.view(batch_size, -1).cuda()
         z.requires_grad_(True)
-        recover, code_data, Jac, Jac_noise, Jac_z  = model(None, None, z, calculate_jacobian=True)
-        
+        recover_z, code_data_z  = model(z)
+
+        Jac_z = Jacobian_for_ALTER(model, code_data_z)
+
         u, sigma, v = torch.svd(Jac_z)
         u = u[:, :, :k]
         sigma = torch.diag_embed(sigma)[:, :k, :k]
