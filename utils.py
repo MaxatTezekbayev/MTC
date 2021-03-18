@@ -77,7 +77,13 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
         z.requires_grad_(True)
         recover_z, code_data_z  = model(z)
 
-        Jac_z = Jacobian_for_ALTER(model, code_data_z)
+        # Jac_z = Jacobian_for_ALTER(model, code_data_z)
+        grad_output=torch.ones(batch_size).cuda()
+        Jac_z=[]                                                                                        
+        for i in range(recover_z.shape[1]):
+            Jac_z.append(torch.autograd.grad(outputs=recover_z[:,i], inputs=z, grad_outputs=grad_output, retain_graph=True, create_graph=True)[0])
+        Jac_z=torch.reshape(torch.cat(Jac_z,1),[batch_size, recover_z.shape[1], z.shape[1]])
+    
 
         u, sigma, v = torch.svd(Jac_z)
         u = u[:, :, :k]
