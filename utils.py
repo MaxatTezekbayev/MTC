@@ -85,10 +85,10 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
         Jac_z=torch.reshape(torch.cat(Jac_z,1),[batch_size, recover_z.shape[1], z.shape[1]])
     
 
-        u, sigma, v = torch.svd(Jac_z)
-        u = u[:, :, :k]
-        sigma = torch.diag_embed(sigma)[:, :k, :k]
-        v = torch.transpose(v[:, :, :k],1,2)
+        u, sigma, v = torch.svd(Jac_z.cpu())
+        u = u[:, :, :k].cuda()
+        sigma = torch.diag_embed(sigma)[:, :k, :k].cuda()
+        v = torch.transpose(v[:, :, :k],1,2).cuda()
         b = torch.matmul(u, torch.matmul(sigma, v))
         B.append(b.cpu())
     B = torch.stack(B)
