@@ -71,11 +71,11 @@ def MTC_loss(pred, y, u, imgs, beta, batch_size):
 def svd_product(A, U, S, VH): # A*U*S*VH
     Q, R = torch.qr(torch.matmul(A, U))
     u, s, vh = torch.svd(torch.matmul(R, torch.diag_embed(S)))
+    vh = vh.T
     return [torch.matmul(Q,u), s, torch.matmul(vh,VH)]
 
 def svd_drei(A, B, C, U, S, VH): # A*B*C*U*S*VH
     U1, S1, VH1 = svd_product(C, U, S, VH)
-    print('hello')
     U2, S2, VH2 = svd_product(B, U1, S1, VH1)
     return svd_product(A, U2, S2, VH2)
 
@@ -97,6 +97,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
 
         recover, A, B, C, W4  = model(z, Drei = True)
         U, S, VH = torch.svd(W4)
+        VH = VH.T
         for i in range(len(A)):
             print(i)
             u, s, vh = svd_drei(A[i], B[i], C[i], U, S, VH)
