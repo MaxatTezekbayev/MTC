@@ -105,6 +105,9 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
         z = z.view(batch_size, -1).cuda()
         z.requires_grad_(True)
         recover_z, code_data_z = model(z, calculate_jacobian = True)
+
+        W1 = model.W1.clone()
+        W2 = model.W2.clone()
         Jac_z = calc_jac(code_data_z, model.W1, model.W2)
         u, sigma, v = torch.linalg.svd(Jac_z)
         if step==0:

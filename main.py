@@ -219,6 +219,8 @@ if args.ALTER:
                 _, code_data_noise = model(x_noise, calculate_jacobian=True)
                 _, code_data_z = model(z, calculate_jacobian=True)
                 
+                W1 = model.W1.clone()
+                W2 = model.W2.clone()
                 Jac = calc_jac(code_data, model.W1, model.W2)
                 Jac_noise = calc_jac(code_data_noise, model.W1, model.W2)
                 Jac_z = calc_jac(code_data_z, model.W1, model.W2)
