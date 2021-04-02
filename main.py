@@ -187,6 +187,8 @@ if args.ALTER:
     MSELoss = nn.MSELoss()
 
     B = calculate_B_alter(model, train_z_loader, k, batch_size, first_time = True)
+
+    B = torch.zeros((len(train_z_loader),1))
     for epoch in range(args.epochs):
         for alter_epoch in range(args.alter_epochs):
             train_loss = 0
@@ -249,7 +251,45 @@ if args.ALTER:
             writer.add_scalar('ALTER/Loss/test_MSE', (test_loss / test_num_batches), epoch)
             print(epoch, train_loss/num_batches)
 
-        Bx, W1_copy, W2_copy,  b1_copy,  b2_copy, b3_copy, b_r_copy = calculate_B_alter(model, train_z_loader, k, batch_size)
+        # Bx, W1_copy, W2_copy,  b1_copy,  b2_copy, b3_copy, b_r_copy = calculate_B_alter(model, train_z_loader, k, batch_size)
+
+        B =[]
+        for step, (z, _) in enumerate(train_z_loader):
+            print(step)
+            z = z.view(batch_size, -1).cuda()
+            z.requires_grad_(True)
+            # recover_z, code_data_z = model(z, calculate_jacobian = True)
+
+            W1_copy = model.W1.detach().clone().requires_grad_(True).cuda()
+            W2_copy = model.W2.detach().clone().requires_grad_(True).cuda()
+            b1_copy = model.b1.detach().clone().requires_grad_(True).cuda()
+            b2_copy = model.b2.detach().clone().requires_grad_(True).cuda()
+            b3_copy = model.b3.detach().clone().requires_grad_(True).cuda()
+            b_r_copy = model.b_r.detach().clone().requires_grad_(True).cuda()
+
+            code_data1 = torch.sigmoid(torch.matmul(z, W1_copy.t()) + b1_copy)
+            code_data2 = torch.sigmoid(torch.matmul(code_data1, W2_copy.t()) + b2_copy)
+            #decode
+            code_data3 = torch.sigmoid(torch.matmul(code_data2, W2_copy) + b3_copy)
+            recover = torch.sigmoid(torch.matmul(code_data3, W1_copy) + b_r_copy)
+
+            code_data_z = [code_data1, code_data2, code_data3]
+            Jac_z = calc_jac(code_data_z, W1_copy, W2_copy)
+            u, sigma, v = torch.linalg.svd(Jac_z)
+            if step==0:
+                print("u",u.shape, sigma.shape, v.shape)
+            B.append(torch.matmul(u[:, :, :k], torch.matmul(torch.diag_embed(sigma)[:, :k, :k], v[:, :k, :])).cpu())
+            # recover, A, B, C, W4  = model(z, Drei = True)
+            # print(W4.shape)
+            # U, S, VH = torch.svd(W4)
+            # print('U:',U.shape, S.shape,VH.shape)
+            # for i in range(len(A)):
+            #     u, s, vh = svd_drei(A[i], B[i], C[i], U, S, VH.T)
+
+            #     b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
+            #     Bx.append(b.cpu())
+            
+        B= torch.stack(B)
     #end of training
 
     if args.save_dir_for_ALTER:
