@@ -221,7 +221,7 @@ if args.ALTER:
                 x.requires_grad_(False)
                 x_noise.requires_grad_(False)
                 z.requires_grad_(False)
-                loss.backward()
+                loss.backward(retain_graph = True)
 
                 print(step)
                 train_loss += loss.item()
