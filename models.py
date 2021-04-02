@@ -124,7 +124,7 @@ class ALTER2Layer(nn.Module):
 
         if calculate_jacobian:
             Jac = []
-             grad_output=torch.ones(batch_size).cuda()
+            grad_output=torch.ones(batch_size).cuda()
             Jac=[]                                                                                        
             for i in range(code_data2.shape[1]):
                 Jac.append(torch.autograd.grad(outputs=recover[:,i], inputs=x, grad_outputs=grad_output, retain_graph=True, create_graph=True)[0])
