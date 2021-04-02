@@ -227,8 +227,8 @@ if args.ALTER:
                     loss.backward(retain_graph = True)
                 else:
                     loss.backward()
-                if step % 100 == 0:
-                    print(step)
+                # if step % 100 == 0:
+                print(step)
                 train_loss += loss.item()
                 MSE_loss += loss1.item()
                 optimizer.step()
@@ -245,7 +245,7 @@ if args.ALTER:
             writer.add_scalar('ALTER/Loss/test_MSE', (test_loss / test_num_batches), epoch)
             print(epoch, train_loss/num_batches)
 
-        # B = calculate_B_alter(model, train_z_loader, k, batch_size)
+        B = calculate_B_alter(model, train_z_loader, k, batch_size)
     #end of training
 
     if args.save_dir_for_ALTER:
