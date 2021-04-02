@@ -106,12 +106,12 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
         z.requires_grad_(True)
         # recover_z, code_data_z = model(z, calculate_jacobian = True)
 
-        W1_copy = model.W1.clone().detach().requires_grad_(True).cuda()
-        W2_copy = model.W2.clone().detach().requires_grad_(True).cuda()
-        b1_copy = model.b1.clone().detach().requires_grad_(True).cuda()
-        b2_copy = model.b2.clone().detach().requires_grad_(True).cuda()
-        b3_copy = model.b3.clone().detach().requires_grad_(True).cuda()
-        b_r_copy = model.b_r.clone().detach().requires_grad_(True).cuda()
+        W1_copy = model.W1.detach().clone().requires_grad_(True).cuda()
+        W2_copy = model.W2.detach().clone().requires_grad_(True).cuda()
+        b1_copy = model.b1.detach().clone().requires_grad_(True).cuda()
+        b2_copy = model.b2.detach().clone().requires_grad_(True).cuda()
+        b3_copy = model.b3.detach().clone().requires_grad_(True).cuda()
+        b_r_copy = model.b_r.detach().clone().requires_grad_(True).cuda()
 
         code_data1 = torch.sigmoid(torch.matmul(z, W1_copy.t()) + b1_copy)
         code_data2 = torch.sigmoid(torch.matmul(code_data1, W2_copy.t()) + b2_copy)
