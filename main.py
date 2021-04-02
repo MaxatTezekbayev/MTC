@@ -221,15 +221,15 @@ if args.ALTER:
                 
                 W1 = model.W1.clone()
                 W2 = model.W2.clone()
-                Jac = calc_jac(code_data, model.W1, model.W2)
-                Jac_noise = calc_jac(code_data_noise, model.W1, model.W2)
+                Jac = calc_jac(code_data, W1, W2)
+                Jac_noise = calc_jac(code_data_noise, W1, W2)
                 Jac_z = calc_jac(code_data_z, model.W1, model.W2)
                 loss, loss1 = alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, args.lambd, args.gamma)
 
                 x.requires_grad_(False)
                 x_noise.requires_grad_(False)
                 z.requires_grad_(False)
-                loss.backward()
+                loss.backward(retain_graph = True)
                 # if step % 100 == 0:
                 print(step)
                 train_loss += loss.item()

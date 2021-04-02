@@ -108,7 +108,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
 
         W1 = model.W1.clone()
         W2 = model.W2.clone()
-        Jac_z = calc_jac(code_data_z, model.W1, model.W2)
+        Jac_z = calc_jac(code_data_z, W1, W2)
         u, sigma, v = torch.linalg.svd(Jac_z)
         if step==0:
             print("u",u.shape, sigma.shape, v.shape)
