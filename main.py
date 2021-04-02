@@ -226,6 +226,7 @@ if args.ALTER:
                 if step != last_step:
                     loss.backward(retain_graph = True)
                 else:
+                    print('hello')
                     loss.backward()
                 # if step % 100 == 0:
                 print(step)
