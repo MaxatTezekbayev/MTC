@@ -91,7 +91,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
         u, sigma, v = torch.linalg.svd(Jac_z)
         u = u[:, :, :k]
         sigma = torch.diag_embed(sigma)[:, :k, :k]
-        v = v[:, :, :k]
+        v = v[:, :k, :]
         b = torch.matmul(u, torch.matmul(sigma, v))
         Bx.append(b.cpu())
         # recover, A, B, C, W4  = model(z, Drei = True)
