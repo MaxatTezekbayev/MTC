@@ -229,6 +229,8 @@ if args.ALTER:
                 x_noise.requires_grad_(False)
                 z.requires_grad_(False)
                 loss.backward()
+                if epoch>0:
+                    print(W1_copy.grad)
                 # if step % 100 == 0:
                 print(step)
                 train_loss += loss.item()
