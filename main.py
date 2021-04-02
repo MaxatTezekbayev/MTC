@@ -194,6 +194,7 @@ if args.ALTER:
 
             train_z_iterator = iter(train_z_loader)
             B_iter = iter(B)
+            last_step = len(train_loader)-1
             for step, (x, _) in enumerate(train_loader):
                 #to always get some batch of z
                 try:
@@ -222,7 +223,10 @@ if args.ALTER:
                 x.requires_grad_(False)
                 x_noise.requires_grad_(False)
                 z.requires_grad_(False)
-                loss.backward(retain_graph = True)
+                if step != last_step:
+                    loss.backward(retain_graph = True)
+                else:
+                    loss.backward()
                 if step % 100 == 0:
                     print(step)
                 train_loss += loss.item()
