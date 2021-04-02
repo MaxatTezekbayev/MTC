@@ -86,23 +86,22 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
     for step, (z, _) in enumerate(train_z_loader):
         z = z.view(batch_size, -1).cuda()
         z.requires_grad_(True)
-        recover_z, code_data_z, Jac_z  = model(z, calculate_jacobian = True)
-        for i in range(Jac_z.shape[0]):
-            u, sigma, v = torch.svd(Jac_z[i])
+        # recover_z, code_data_z, Jac_z  = model(z, calculate_jacobian = True)
+        # u, sigma, v = torch.svd(Jac_z)
+        # u = u[:, :, :k]
+        # sigma = torch.diag_embed(sigma)[:, :k, :k]
+        # v = torch.transpose(v[:, :, :k],1,2)
+        # b = torch.matmul(u, torch.matmul(sigma, v))
+
+        recover, A, B, C, W4  = model(z, Drei = True)
+        for i in range(len(A)):
+            U, S, VH = torch.svd(W4)
+            u, s, vh = svd_drei(A[i], B[i], C[i], U, S, VH)
             u = u[:, :k]
             sigma = torch.diag_embed(sigma)[:k, :k]
-            v = torch.transpose(v[:, :k],0, 1)
+            v = torch.transpose(v[:, :k],0,1)
             b = torch.matmul(u, torch.matmul(sigma, v))
             B.append(b.cpu())
-        # recover, A, B, C, W4  = model(z, Drei = True)
-        # for i in range(len(A)):
-        #     U, S, VH = torch.svd(W4)
-        #     u, s, vh = svd_drei(A[i], B[i], C[i], U, S, VH)
-        #     u = u[:, :, :k]
-        #     sigma = torch.diag_embed(sigma)[:, :k, :k]
-        #     v = torch.transpose(v[:, :, :k],1,2)
-        # b = torch.matmul(u, torch.matmul(sigma, v))
-        # B.append(b.cpu())
     B = torch.stack(B)
     return B
     
