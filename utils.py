@@ -103,7 +103,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
             u, s, vh = svd_drei(A[i], B[i], C[i], U, S, VH)
             u = u[:, :k]
             s = torch.diag_embed(s)[:k, :k]
-            v = torch.transpose(v[:, :k],0,1)
+            vh =vh[:k, :]
             b = torch.matmul(u, torch.matmul(s, v))
             B.append(b.cpu())
     B = torch.stack(B)
