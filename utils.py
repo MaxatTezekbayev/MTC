@@ -69,7 +69,7 @@ def MTC_loss(pred, y, u, imgs, beta, batch_size):
     return loss, loss1
  
 def svd_product(A, U, S, VH): # A*U*S*VH
-    Q, R = torch.qr(np.matmul(A, U))
+    Q, R = torch.qr(torch.matmul(A, U))
     u, s, vh = torch.svd(torch.matmul(R, torch.diag(S)))
     return [torch.matmul(Q,u), s, torch.matmul(vh,VH)]
 
