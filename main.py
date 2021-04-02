@@ -223,6 +223,7 @@ if args.ALTER:
                 z.requires_grad_(False)
                 loss.backward()
 
+                print(step)
                 train_loss += loss.item()
                 MSE_loss += loss1.item()
                 optimizer.step()
