@@ -96,9 +96,11 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
         # Bx.append(b.cpu())
         recover, A, B, C, W4  = model(z, Drei = True)
         U, S, VH = torch.svd(W4)
+        print('U:',U.shape, S.shape,VH.shape)
         for i in range(len(A)):
             u, s, vh = svd_drei(A[i], B[i], C[i], U, S, VH.T)
-            print(u.shape,"    |    ", s.shape, "    |    ", vh.shape)
+            if i == 0:
+                print(u.shape,"    |    ", s.shape, "    |    ", vh.shape)
             b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
             Bx.append(b.cpu())
         z.requires_grad_(False)
