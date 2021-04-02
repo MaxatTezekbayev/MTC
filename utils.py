@@ -83,7 +83,7 @@ def calc_jac(code_data, W1, W2):
     Jac = []
     for i in range(batch_size): 
         diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data[0][i], code_data[0][i]))
-        grad_1 = torch.matmul(W1, diag_sigma_prime1)
+        grad_1 = torch.matmul(W1.t(), diag_sigma_prime1)
 
         diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data[1][i], code_data[1][i]))
         grad_2 = torch.matmul(W2.t(), diag_sigma_prime2)
