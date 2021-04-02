@@ -78,7 +78,24 @@ def svd_drei(A, B, C, U, S, VH): # A*B*C*U*S*VH
     U2, S2, VH2 = svd_product(B, U1, S1, VH1)
     return svd_product(A, U2, S2, VH2)
 
-from main import calc_jac
+def calc_jac(code_data, W1, W2):
+    batch_size = code_data[0][0].shape[0]
+    Jac = []
+    for i in range(batch_size): 
+        diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data[0][i], code_data[0][i]))
+        grad_1 = torch.matmul(W1, diag_sigma_prime1)
+
+        diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data[1][i], code_data[1][i]))
+        grad_2 = torch.matmul(W2.t(), diag_sigma_prime2)
+
+        diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data[2][i], code_data[2][i]))
+        grad_3 = torch.matmul(W2, diag_sigma_prime3)
+
+        grad_4 = W1
+        Jac.append(torch.matmul(grad_1, torch.matmul(grad_2, torch.matmul(grad_3, grad_4))))
+    Jac = torch.reshape(torch.cat(Jac,1),[batch_size, recover.shape[1], x.shape[1]])
+    return Jac
+    
 def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
     if first_time:
         return torch.zeros((len(train_z_loader),1))

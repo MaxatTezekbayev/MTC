@@ -8,7 +8,7 @@ from torchvision import datasets, transforms
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from models import CAE1Layer, CAE2Layer, MTC, ALTER2Layer
-from utils import cae_h_loss, MTC_loss, alter_loss, calculate_B_alter, calculate_singular_vectors_B, knn_distances, sigmoid, Jacobian_for_ALTER
+from utils import cae_h_loss, MTC_loss, alter_loss, calculate_B_alter, calculate_singular_vectors_B, knn_distances, sigmoid, Jacobian_for_ALTER, calc_jac
 
 import argparse
 from collections import Counter
@@ -179,23 +179,7 @@ elif args.train_CAEH is True:
     if args.save_dir_for_CAE:
         torch.save(model.state_dict(), args.save_dir_for_CAE)
 
-def calc_jac(code_data, W1, W2):
-    batch_size = code_data[0][0].shape[0]
-    Jac = []
-    for i in range(batch_size): 
-        diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data[0][i], code_data[0][i]))
-        grad_1 = torch.matmul(W1, diag_sigma_prime1)
 
-        diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data[1][i], code_data[1][i]))
-        grad_2 = torch.matmul(W2.t(), diag_sigma_prime2)
-
-        diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data[2][i], code_data[2][i]))
-        grad_3 = torch.matmul(W2, diag_sigma_prime3)
-
-        grad_4 = W1
-        Jac.append(torch.matmul(grad_1, torch.matmul(grad_2, torch.matmul(grad_3, grad_4))))
-    Jac = torch.reshape(torch.cat(Jac,1),[batch_size, recover.shape[1], x.shape[1]])
-    return Jac
 
 ### ALTER
 if args.ALTER:
