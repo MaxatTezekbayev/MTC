@@ -222,7 +222,7 @@ if args.ALTER:
                 x_noise.requires_grad_(False)
                 z.requires_grad_(False)
                 loss.backward(retain_graph = True)
-                if step % 100 = 0:
+                if step % 100 == 0:
                     print(step)
                 train_loss += loss.item()
                 MSE_loss += loss1.item()
