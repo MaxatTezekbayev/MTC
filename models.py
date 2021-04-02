@@ -120,29 +120,24 @@ class ALTER2Layer(nn.Module):
         code_data3 = self.sigmoid(torch.matmul(code_data2, self.W2) + self.b3)
         recover = self.sigmoid(torch.matmul(code_data3, self.W1) + self.b_r)
 
+        return recover, [code_data1, code_data2, code_data3]
         batch_size = x.shape[0]
 
         if calculate_jacobian:
             Jac = []
-            grad_output=torch.ones(batch_size).cuda()
-            Jac=[]                                                                                        
-            for i in range(recover.shape[1]):
-                Jac.append(torch.autograd.grad(outputs=recover[:,i], inputs=x, grad_outputs=grad_output, retain_graph=True, create_graph=True)[0])
-            Jac=torch.reshape(torch.cat(Jac,1),[x.shape[0], recover.shape[1], x.shape[1]])
+            for i in range(batch_size): 
+                diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1[i], code_data1[i]))
+                grad_1 = torch.matmul(self.W1.t(), diag_sigma_prime1)
     
-            # for i in range(batch_size): 
-            #     diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1[i], code_data1[i]))
-            #     grad_1 = torch.matmul(self.W1.t().clone(), diag_sigma_prime1)
-    
-            #     diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data2[i], code_data2[i]))
-            #     grad_2 = torch.matmul(self.W2.t().clone(), diag_sigma_prime2)
+                diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data2[i], code_data2[i]))
+                grad_2 = torch.matmul(self.W2.t(), diag_sigma_prime2)
         
-            #     diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3[i], code_data3[i]))
-            #     grad_3 = torch.matmul(self.W2.clone(), diag_sigma_prime3)
+                diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3[i], code_data3[i]))
+                grad_3 = torch.matmul(self.W2, diag_sigma_prime3)
         
-            #     grad_4 = self.W1.clone()
-            #     Jac.append(torch.matmul(grad_1, torch.matmul(grad_2, torch.matmul(grad_3, grad_4))))
-            # Jac = torch.reshape(torch.cat(Jac,1),[batch_size, recover.shape[1], x.shape[1]])
+                grad_4 = self.W1
+                Jac.append(torch.matmul(grad_1, torch.matmul(grad_2, torch.matmul(grad_3, grad_4))))
+            Jac = torch.reshape(torch.cat(Jac,1),[batch_size, recover.shape[1], x.shape[1]])
             return recover, code_data2, Jac
 
         if Drei:

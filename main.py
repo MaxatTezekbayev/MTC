@@ -179,6 +179,23 @@ elif args.train_CAEH is True:
     if args.save_dir_for_CAE:
         torch.save(model.state_dict(), args.save_dir_for_CAE)
 
+def calc_jac(code_data, W1, W2):
+    batch_size = code_data[0][0].shape[0]
+    Jac = []
+    for i in range(batch_size): 
+        diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data[0][i], code_data[0][i]))
+        grad_1 = torch.matmul(W1, diag_sigma_prime1)
+
+        diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data[1][i], code_data[1][i]))
+        grad_2 = torch.matmul(W2.t(), diag_sigma_prime2)
+
+        diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data[2][i], code_data[2][i]))
+        grad_3 = torch.matmul(W2, diag_sigma_prime3)
+
+        grad_4 = W1
+        Jac.append(torch.matmul(grad_1, torch.matmul(grad_2, torch.matmul(grad_3, grad_4))))
+    Jac = torch.reshape(torch.cat(Jac,1),[batch_size, recover.shape[1], x.shape[1]])
+    return Jac
 
 ### ALTER
 if args.ALTER:
@@ -214,10 +231,13 @@ if args.ALTER:
                 z.requires_grad_(True)
                 x_noise = torch.autograd.Variable(x.data + torch.normal(0, args.epsilon, size=[batch_size, dimensionality]).cuda(), requires_grad=True)
 
-                recover, code_data, Jac = model(x, calculate_jacobian=True)
-                _, _, Jac_noise = model(x_noise, calculate_jacobian=True)
-                _, _, Jac_z = model(z, calculate_jacobian=True)
-   
+                recover, code_data = model(x, calculate_jacobian=True)
+                _, code_data_noise = model(x_noise, calculate_jacobian=True)
+                _, code_data_z = model(z, calculate_jacobian=True)
+                
+                Jac = calc_jac(code_data, model.W1, model.W2)
+                Jac_noise = calc_jac(code_data_noise, model.W1, model.W2)
+                Jac_z = calc_jac(code_data_z, model.W1, model.W2)
                 loss, loss1 = alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, args.lambd, args.gamma)
 
                 x.requires_grad_(False)
