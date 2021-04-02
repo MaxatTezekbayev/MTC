@@ -93,7 +93,7 @@ def calc_jac(code_data, W1, W2):
 
         grad_4 = W1
         Jac.append(torch.matmul(grad_1, torch.matmul(grad_2, torch.matmul(grad_3, grad_4))))
-    Jac = torch.reshape(torch.cat(Jac,1),[batch_size, recover.shape[1], x.shape[1]])
+    Jac = torch.reshape(torch.cat(Jac,1),[batch_size, W1.shape[1], x.shape[1]])
     return Jac
 
 def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
