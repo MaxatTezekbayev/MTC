@@ -106,12 +106,12 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
         z.requires_grad_(True)
         # recover_z, code_data_z = model(z, calculate_jacobian = True)
 
-        W1 = model.W1.clone().detach().requires_grad_(True)
-        W2 = model.W2.clone().detach().requires_grad_(True)
-        b1 = model.b1.clone().detach().requires_grad_(True)
-        b2 = model.b2.clone().detach().requires_grad_(True)
-        b3 = model.b3.clone().detach().requires_grad_(True)
-        b_r = model.b_r.clone().detach().requires_grad_(True)
+        W1_copy = model.W1.clone().detach().requires_grad_(True)
+        W2_copy = model.W2.clone().detach().requires_grad_(True)
+        b1_copy = model.b1.clone().detach().requires_grad_(True)
+        b2_copy = model.b2.clone().detach().requires_grad_(True)
+        b3_copy = model.b3.clone().detach().requires_grad_(True)
+        b_r_copy = model.b_r.clone().detach().requires_grad_(True)
 
         code_data1 = torch.sigmoid(torch.matmul(z, W1.t()) + b1)
         code_data2 = torch.sigmoid(torch.matmul(code_data1, W2.t()) + b2)
@@ -136,7 +136,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
         #     Bx.append(b.cpu())
         
     Bx= torch.stack(Bx)
-    return Bx
+    return Bx, W1_copy, W2_copy,  b1_copy,  b2_copy, b3_copy, b_r_copy
     
 def calculate_singular_vectors_B(model, train_loader, dM, batch_size):
     grad_output=torch.ones(batch_size).cuda()

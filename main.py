@@ -228,7 +228,7 @@ if args.ALTER:
                 x.requires_grad_(False)
                 x_noise.requires_grad_(False)
                 z.requires_grad_(False)
-                loss.backward(retain_graph = True)
+                loss.backward()
                 # if step % 100 == 0:
                 print(step)
                 train_loss += loss.item()
@@ -247,7 +247,7 @@ if args.ALTER:
             writer.add_scalar('ALTER/Loss/test_MSE', (test_loss / test_num_batches), epoch)
             print(epoch, train_loss/num_batches)
 
-        B = calculate_B_alter(model, train_z_loader, k, batch_size)
+        Bx, W1_copy, W2_copy,  b1_copy,  b2_copy, b3_copy, b_r_copy = calculate_B_alter(model, train_z_loader, k, batch_size)
     #end of training
 
     if args.save_dir_for_ALTER:
