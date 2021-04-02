@@ -113,11 +113,11 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
         b3_copy = model.b3.clone().detach().requires_grad_(True)
         b_r_copy = model.b_r.clone().detach().requires_grad_(True)
 
-        code_data1 = torch.sigmoid(torch.matmul(z, W1.t()) + b1)
-        code_data2 = torch.sigmoid(torch.matmul(code_data1, W2.t()) + b2)
+        code_data1 = torch.sigmoid(torch.matmul(z, W1_copy.t()) + b1_copy)
+        code_data2 = torch.sigmoid(torch.matmul(code_data1, W2_copy.t()) + b2_copy)
         #decode
-        code_data3 = torch.sigmoid(torch.matmul(code_data2, W2) + b3)
-        recover = torch.sigmoid(torch.matmul(code_data3, W1) + b_r)
+        code_data3 = torch.sigmoid(torch.matmul(code_data2, W2_copy) + b3_copy)
+        recover = torch.sigmoid(torch.matmul(code_data3, W1_copy) + b_r_copy)
 
         code_data_z = [code_data1, code_data2, code_data3]
         Jac_z = calc_jac(code_data_z, W1, W2)
