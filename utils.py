@@ -75,6 +75,7 @@ def svd_product(A, U, S, VH): # A*U*S*VH
 
 def svd_drei(A, B, C, U, S, VH): # A*B*C*U*S*VH
     U1, S1, VH1 = svd_product(C, U, S, VH)
+    print('hello')
     U2, S2, VH2 = svd_product(B, U1, S1, VH1)
     return svd_product(A, U2, S2, VH2)
 
