@@ -159,7 +159,7 @@ class ALTER2Layer(nn.Module):
             A = torch.reshape(torch.cat(A, 1),[batch_size, grad_1.shape[0], grad_1.shape[1]])
             B = torch.reshape(torch.cat(B, 1),[batch_size, grad_2.shape[0], grad_2.shape[1]])
             C = torch.reshape(torch.cat(C, 1),[batch_size, grad_3.shape[0], grad_3.shape[1]])
-            return recover, A, B, C, self.W1.clone()
+            return recover, A.clone(), B.clone(), C.clone(), self.W1.clone()
         return recover, code_data2
         
 
