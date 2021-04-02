@@ -104,7 +104,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
             u = u[:, :k]
             s = torch.diag_embed(s)[:k, :k]
             vh =vh[:k, :]
-            b = torch.matmul(u, torch.matmul(s, v))
+            b = torch.matmul(u, torch.matmul(s, vh))
             B.append(b.cpu())
     B = torch.stack(B)
     return B
