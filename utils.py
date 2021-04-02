@@ -70,6 +70,7 @@ def MTC_loss(pred, y, u, imgs, beta, batch_size):
  
 def svd_product(A, U, S, VH): # A*U*S*VH
     Q, R = torch.qr(torch.matmul(A, U))
+    print('Q',Q.shape, R.shape)
     u_temp, s_temp, vh_temp = torch.svd(torch.matmul(R, torch.diag(S)))
     return [torch.matmul(Q, u_temp), s_temp, torch.matmul(vh_temp.T, VH)]
 
@@ -102,6 +103,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
             u, s, vh = svd_drei(A[i], B[i], C[i], U, S, VH.T)
             if i == 0:
                 print(u.shape,"    |    ", s.shape, "    |    ", vh.shape)
+                break
             b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
             Bx.append(b.cpu())
         z.requires_grad_(False)
