@@ -227,9 +227,8 @@ if args.ALTER:
                 MSE_loss += loss1.item()
                 optimizer.step()
                 optimizer.zero_grad()
-                break
 
-                
+
             with torch.no_grad():
                 for test_x, _ in test_loader:
                     test_x = test_x.view(batch_size, -1).cuda()

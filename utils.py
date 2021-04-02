@@ -99,7 +99,6 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
         U, S, VH = torch.svd(W4)
         VH = VH.T
         for i in range(len(A)):
-            print(i)
             u, s, vh = svd_drei(A[i], B[i], C[i], U, S, VH)
             u = u[:, :k]
             s = torch.diag_embed(s)[:k, :k]
@@ -107,7 +106,6 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
             b = torch.matmul(u, torch.matmul(s, vh))
             Bx.append(b.cpu())
     Bx= torch.stack(Bx)
-    print(Bx.shape)
     return Bx
     
 def calculate_singular_vectors_B(model, train_loader, dM, batch_size):
