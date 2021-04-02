@@ -68,6 +68,17 @@ def MTC_loss(pred, y, u, imgs, beta, batch_size):
     loss=loss1 + beta * omega
     return loss, loss1
  
+def svd_product(A, U, S, VH): # A*U*S*VH
+    Q, R = torch.qr(np.matmul(A, U))
+    u, s, vh = torch.svd(torch.matmul(R, torch.diag(S)))
+    return [torch.matmul(Q,u), s, torch.matmul(vh,VH)]
+
+def svd_drei(A, B, C, U, S, VH): # A*B*C*U*S*VH
+    U1, S1, VH1 = svd_product(C, U, S, VH)
+    U2, S2, VH2 = svd_product(B, U1, S1, VH1)
+    return svd_product(A, U2, S2, VH2)
+
+
 def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
     if first_time:
         return torch.zeros((len(train_z_loader),1))
@@ -76,21 +87,22 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
         z = z.view(batch_size, -1).cuda()
         z.requires_grad_(True)
         recover_z, code_data_z, Jac_z  = model(z, calculate_jacobian = True)
-
-        # # Jac_z = Jacobian_for_ALTER(model, code_data_z)
-        # grad_output=torch.ones(batch_size).cuda()
-        # Jac_z=[]                                                                                        
-        # for i in range(recover_z.shape[1]):
-        #     Jac_z.append(torch.autograd.grad(outputs=recover_z[:,i], inputs=z, grad_outputs=grad_output, retain_graph=True, create_graph=True)[0])
-        # Jac_z=torch.reshape(torch.cat(Jac_z,1),[batch_size, recover_z.shape[1], z.shape[1]])
-    
-
-        u, sigma, v = torch.svd(Jac_z)
-        u = u[:, :, :k]
-        sigma = torch.diag_embed(sigma)[:, :k, :k]
-        v = torch.transpose(v[:, :, :k],1,2)
-        b = torch.matmul(u, torch.matmul(sigma, v))
-        B.append(b.cpu())
+        for i in range(Jac_z.shape[0]):
+            u, sigma, v = torch.svd(Jac_z[i])
+            u = u[:, :k]
+            sigma = torch.diag_embed(sigma)[:k, :k]
+            v = torch.transpose(v[:, :k],0, 1)
+            b = torch.matmul(u, torch.matmul(sigma, v))
+            B.append(b.cpu())
+        # recover, A, B, C, W4  = model(z, Drei = True)
+        # for i in range(len(A)):
+        #     U, S, VH = torch.svd(W4)
+        #     u, s, vh = svd_drei(A[i], B[i], C[i], U, S, VH)
+        #     u = u[:, :, :k]
+        #     sigma = torch.diag_embed(sigma)[:, :k, :k]
+        #     v = torch.transpose(v[:, :, :k],1,2)
+        # b = torch.matmul(u, torch.matmul(sigma, v))
+        # B.append(b.cpu())
     B = torch.stack(B)
     return B
     
