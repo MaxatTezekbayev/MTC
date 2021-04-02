@@ -97,6 +97,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
         recover, A, B, C, W4  = model(z, Drei = True)
         U, S, VH = torch.svd(W4)
         for i in range(len(A)):
+            print(i)
             u, s, vh = svd_drei(A[i], B[i], C[i], U, S, VH)
             u = u[:, :k]
             sigma = torch.diag_embed(sigma)[:k, :k]
