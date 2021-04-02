@@ -123,6 +123,7 @@ class ALTER2Layer(nn.Module):
         batch_size = x.shape[0]
 
         if calculate_jacobian:
+            Jac = []
             for i in range(batch_size): 
                 diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1[i], code_data1[i]))
                 grad_1 = torch.matmul(self.W1.T, diag_sigma_prime1)
