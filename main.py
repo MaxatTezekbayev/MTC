@@ -83,6 +83,8 @@ parser.add_argument('--MTC_lr', type=float, default=0.001)
 
 args = parser.parse_args()
 
+torch.autograd.set_detect_anomaly(True)
+
 batch_size = args.batch_size
 k = args.k
 
@@ -227,7 +229,7 @@ if args.ALTER:
                 MSE_loss += loss1.item()
                 optimizer.step()
                 optimizer.zero_grad()
-                
+
             with torch.no_grad():
                 for test_x, _ in test_loader:
                     test_x = test_x.view(batch_size, -1).cuda()
