@@ -229,11 +229,7 @@ if args.ALTER:
                 x.requires_grad_(False)
                 x_noise.requires_grad_(False)
                 z.requires_grad_(False)
-                if step != last_step:
-                    loss.backward(retain_graph = True)
-                else:
-                    print('hello')
-                    loss.backward()
+                loss.backward()
                 # if step % 100 == 0:
                 print(step)
                 train_loss += loss.item()
