@@ -211,11 +211,10 @@ if args.ALTER:
                 z.requires_grad_(True)
                 x_noise = torch.autograd.Variable(x.data + torch.normal(0, args.epsilon, size=[batch_size, dimensionality]).cuda(), requires_grad=True)
 
-                recover, code_data, code_data_noise, code_data_z = model(x, x_noise, z)
-                #code_data is list of [code_data1, code_data2, code_data3]
-                Jac = Jacobian_for_ALTER(model, code_data)
-                Jac_noise = Jacobian_for_ALTER(model, code_data_noise)
-                Jac_z = Jacobian_for_ALTER(model, code_data_z)
+                recover, code_data, Jac = model(x, calculate_jacobian=True)
+                _, _, Jac_noise = model(x_noise, calculate_jacobian=True)
+                _, _, Jac_z = model(z, calculate_jacobian=True)
+   
                 loss, loss1 = alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, args.lambd, args.gamma)
 
                 x.requires_grad_(False)
