@@ -232,7 +232,8 @@ if args.ALTER:
                 z.requires_grad_(False)
                 loss.backward(retain_graph = True)
                 if epoch>0:
-                    print("Sum: ",W1_copy.grad.data.sum())
+                    print("Sum: ",W1_copy.grad.data.mean())
+                    W1_copy.grad = 0
                 # if step % 100 == 0:
                 print(step)
                 train_loss += loss.item()
