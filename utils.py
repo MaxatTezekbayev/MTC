@@ -95,6 +95,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
         # b = torch.matmul(u, torch.matmul(sigma, v))
         # Bx.append(b.cpu())
         recover, A, B, C, W4  = model(z, Drei = True)
+        print(W4.shape)
         U, S, VH = torch.svd(W4)
         print('U:',U.shape, S.shape,VH.shape)
         for i in range(len(A)):
