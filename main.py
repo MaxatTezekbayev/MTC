@@ -230,7 +230,10 @@ if args.ALTER:
                 x.requires_grad_(False)
                 x_noise.requires_grad_(False)
                 z.requires_grad_(False)
-                loss.backward(retain_graph = True)
+                if step != last_step:
+                    loss.backward(retain_graph = True)
+                else:
+                    loss.backward()
                 if epoch>0:
                     print("Sum: ",W1_copy.grad.data.mean())
                     # W1_copy.grad = 0
