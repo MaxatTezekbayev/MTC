@@ -120,7 +120,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
         recover = torch.sigmoid(torch.matmul(code_data3, W1_copy) + b_r_copy)
 
         code_data_z = [code_data1, code_data2, code_data3]
-        Jac_z = calc_jac(code_data_z, W1, W2)
+        Jac_z = calc_jac(code_data_z, W1_copy, W2_copy)
         u, sigma, v = torch.linalg.svd(Jac_z)
         if step==0:
             print("u",u.shape, sigma.shape, v.shape)
