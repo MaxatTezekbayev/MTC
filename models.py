@@ -125,11 +125,11 @@ class ALTER2Layer(nn.Module):
         if calculate_jacobian:
             Jac = []
             for i in range(batch_size): 
-                diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1[i], code_data1[i].clone()))
-                grad_1 = torch.matmul(self.W1.t(), diag_sigma_prime1)
+                diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1[i], code_data1[i]))
+                grad_1 = torch.matmul(self.W1.t().clone(), diag_sigma_prime1)
     
-                diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data2[i], code_data2[i].clone()))
-                grad_2 = torch.matmul(self.W2.t(), diag_sigma_prime2)
+                diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data2[i], code_data2[i]))
+                grad_2 = torch.matmul(self.W2.t().clone(), diag_sigma_prime2)
         
                 diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3[i], code_data3[i]))
                 grad_3 = torch.matmul(self.W2.clone(), diag_sigma_prime3)
