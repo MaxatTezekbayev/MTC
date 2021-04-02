@@ -126,7 +126,7 @@ class ALTER2Layer(nn.Module):
             Jac = []
             grad_output=torch.ones(batch_size).cuda()
             Jac=[]                                                                                        
-            for i in range(code_data2.shape[1]):
+            for i in range(recover.shape[1]):
                 Jac.append(torch.autograd.grad(outputs=recover[:,i], inputs=x, grad_outputs=grad_output, retain_graph=True, create_graph=True)[0])
             Jac=torch.reshape(torch.cat(Jac,1),[x.shape[0], recover.shape[1], x.shape[1]])
     
