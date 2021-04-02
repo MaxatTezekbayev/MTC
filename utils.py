@@ -70,7 +70,7 @@ def MTC_loss(pred, y, u, imgs, beta, batch_size):
  
 def svd_product(A, U, S, VH): # A*U*S*VH
     Q, R = torch.qr(torch.matmul(A, U))
-    u, s, vh = torch.svd(torch.matmul(R, torch.diag(S)))
+    u, s, vh = torch.svd(torch.matmul(R, torch.diag_embed(S)))
     return [torch.matmul(Q,u), s, torch.matmul(vh,VH)]
 
 def svd_drei(A, B, C, U, S, VH): # A*B*C*U*S*VH
@@ -84,6 +84,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
         return torch.zeros((len(train_z_loader),1))
     B=[]
     for step, (z, _) in enumerate(train_z_loader):
+        print(step)
         z = z.view(batch_size, -1).cuda()
         z.requires_grad_(True)
         # recover_z, code_data_z, Jac_z  = model(z, calculate_jacobian = True)
@@ -94,8 +95,8 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
         # b = torch.matmul(u, torch.matmul(sigma, v))
 
         recover, A, B, C, W4  = model(z, Drei = True)
+        U, S, VH = torch.svd(W4)
         for i in range(len(A)):
-            U, S, VH = torch.svd(W4)
             u, s, vh = svd_drei(A[i], B[i], C[i], U, S, VH)
             u = u[:, :k]
             sigma = torch.diag_embed(sigma)[:k, :k]
