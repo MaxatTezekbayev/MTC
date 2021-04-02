@@ -94,7 +94,7 @@ if args.dataset == "MNIST":
     image_size = 28
     dimensionality = image_size*image_size
     train_dataset = datasets.MNIST('data', train=True, download=True, transform=transforms.ToTensor())
-    train_dataset = torch.utils.data.Subset(train_dataset, range(0, 700))
+    # train_dataset = torch.utils.data.Subset(train_dataset, range(0, 700))
     test_dataset = datasets.MNIST('data', train=False, download=True, transform=transforms.ToTensor())
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size)
@@ -235,22 +235,23 @@ if args.ALTER:
                 else:
                     loss.backward()
                 if epoch>0:
-                    print("Sum: ",W1_copy.grad.data.mean())
+                    # print("Sum: ",W1_copy.grad.data.mean())
                     model.W1.grad.data += W1_copy.grad.data
                     model.W2.grad.data += W2_copy.grad.data
                     model.b1.grad.data += b1_copy.grad.data
                     model.b2.grad.data += b2_copy.grad.data
                     model.b3.grad.data += b3_copy.grad.data
 
-
+                    if step % 100 == 0:
+                        print(step, "Sum: ",W1_copy.grad.data.mean())
                     W1_copy.grad = None
                     W2_copy.grad = None
                     b1_copy.grad = None
                     b2_copy.grad = None
                     b3_copy.grad = None
                     # W1_copy.grad = 0
-                # if step % 100 == 0:
-                print(step)
+                
+                # print(step)
                 train_loss += loss.item()
                 MSE_loss += loss1.item()
                 optimizer.step()
