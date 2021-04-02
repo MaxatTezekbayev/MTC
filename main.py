@@ -241,14 +241,13 @@ if args.ALTER:
                     model.b1.grad.data += b1_copy.grad.data
                     model.b2.grad.data += b2_copy.grad.data
                     model.b3.grad.data += b3_copy.grad.data
-                    model.b_r.grad.data += b_r_copy.grad.data
+
 
                     W1_copy.grad = None
                     W2_copy.grad = None
                     b1_copy.grad = None
                     b2_copy.grad = None
                     b3_copy.grad = None
-                    b_r_copy.grad = None
                     # W1_copy.grad = 0
                 # if step % 100 == 0:
                 print(step)
