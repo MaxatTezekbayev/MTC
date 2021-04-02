@@ -223,6 +223,8 @@ if args.ALTER:
                 z.requires_grad_(False)
                 loss.backward(retain_graph = True)
                 if step % 100 == 0:
+                    if step % 200 == 0:
+                        break
                     print(step)
                 train_loss += loss.item()
                 MSE_loss += loss1.item()
