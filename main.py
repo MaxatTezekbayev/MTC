@@ -83,7 +83,6 @@ parser.add_argument('--MTC_lr', type=float, default=0.001)
 
 args = parser.parse_args()
 
-torch.autograd.set_detect_anomaly(True)
 
 batch_size = args.batch_size
 k = args.k
