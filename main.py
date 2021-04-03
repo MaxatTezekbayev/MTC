@@ -292,9 +292,9 @@ if args.ALTER:
             # u, sigma, v = torch.linalg.svd(Jac_z)
             
             #drei
-            A = []
-            B = []
-            C = []
+            A_matrix = []
+            B_matrix = []
+            C_matrix = []
             for i in range(batch_size): 
                 diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1_z[i], code_data1_z[i]))
                 grad_1 = torch.matmul(W1_copy.t(), diag_sigma_prime1)
@@ -305,16 +305,16 @@ if args.ALTER:
                 diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3_z[i], code_data3_z[i]))
                 grad_3 = torch.matmul(W2_copy, diag_sigma_prime3)
         
-                A.append(grad_1)
-                B.append(grad_2)
-                C.append(grad_3)
-            A = torch.reshape(torch.cat(A, 1),[batch_size, grad_1.shape[0], grad_1.shape[1]])
-            B = torch.reshape(torch.cat(B, 1),[batch_size, grad_2.shape[0], grad_2.shape[1]])
-            C = torch.reshape(torch.cat(C, 1),[batch_size, grad_3.shape[0], grad_3.shape[1]])
+                A_matrix.append(grad_1)
+                B_matrix.append(grad_2)
+                C_matrix.append(grad_3)
+            A_matrix = torch.reshape(torch.cat(A_matrix, 1),[batch_size, grad_1.shape[0], grad_1.shape[1]])
+            B_matrix = torch.reshape(torch.cat(B_matrix, 1),[batch_size, grad_2.shape[0], grad_2.shape[1]])
+            C_matrix = torch.reshape(torch.cat(C_matrix, 1),[batch_size, grad_3.shape[0], grad_3.shape[1]])
             U, S, VH = torch.svd(W1_copy)
             print('U:',U.shape, S.shape,VH.shape)
             for i in range(len(A)):
-                u, s, vh = svd_drei(A[i], B[i], C[i], U, S, VH.T)
+                u, s, vh = svd_drei(A_matrix[i], B_matrix[i], C_matrix[i], U, S, VH.T)
 
                 b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
                 B.append(b.cpu())
