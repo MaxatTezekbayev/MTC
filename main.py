@@ -311,7 +311,7 @@ if args.ALTER:
             A = torch.reshape(torch.cat(A, 1),[batch_size, grad_1.shape[0], grad_1.shape[1]])
             B = torch.reshape(torch.cat(B, 1),[batch_size, grad_2.shape[0], grad_2.shape[1]])
             C = torch.reshape(torch.cat(C, 1),[batch_size, grad_3.shape[0], grad_3.shape[1]])
-            U, S, VH = torch.svd(W4)
+            U, S, VH = torch.svd(W1_copy)
             print('U:',U.shape, S.shape,VH.shape)
             for i in range(len(A)):
                 u, s, vh = svd_drei(A[i], B[i], C[i], U, S, VH.T)
