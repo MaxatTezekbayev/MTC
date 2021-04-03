@@ -282,10 +282,10 @@ if args.ALTER:
             b_r_copy = model.b_r.detach().clone().requires_grad_(True).cuda()
 
             code_data1_z = torch.sigmoid(torch.matmul(z, W1_copy.t()) + b1_copy)
-            code_data2_z = torch.sigmoid(torch.matmul(code_data1, W2_copy.t()) + b2_copy)
+            code_data2_z = torch.sigmoid(torch.matmul(code_data1_z, W2_copy.t()) + b2_copy)
             #decode
-            code_data3_z = torch.sigmoid(torch.matmul(code_data2, W2_copy) + b3_copy)
-            recover_z = torch.sigmoid(torch.matmul(code_data3, W1_copy) + b_r_copy)
+            code_data3_z = torch.sigmoid(torch.matmul(code_data2_z, W2_copy) + b3_copy)
+            recover_z = torch.sigmoid(torch.matmul(code_data3_z, W1_copy) + b_r_copy)
 
             # code_data_z = [code_data1, code_data2, code_data3]
             # Jac_z = calc_jac(code_data_z, W1_copy, W2_copy)
