@@ -198,7 +198,7 @@ if args.ALTER:
             train_z_iterator = iter(train_z_loader)
             B_iter = iter(B)
             last_step = len(train_loader)-1
-            for step, (x, _) in tqdm(enumerate(train_loader)):
+            for step, (x, _) in enumerate(tqdm(train_loader)):
                 #to always get some batch of z
                 try:
                     z = next(train_z_iterator)[0]
@@ -269,7 +269,7 @@ if args.ALTER:
         # Bx, W1_copy, W2_copy,  b1_copy,  b2_copy, b3_copy, b_r_copy = calculate_B_alter(model, train_z_loader, k, batch_size)
 
         B =[]
-        for step, (z, _) in tqdm(enumerate(train_z_loader)):
+        for step, (z, _) in enumerate(tqdm(train_z_loader)):
             print(step)
             z = z.view(batch_size, -1).cuda()
             z.requires_grad_(True)
