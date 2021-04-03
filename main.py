@@ -269,7 +269,6 @@ if args.ALTER:
 
         B =[]
         for step, (z, _) in enumerate(tqdm(train_z_loader)):
-            print(step)
             z = z.view(batch_size, -1).cuda()
             z.requires_grad_(True)
             # recover_z, code_data_z = model(z, calculate_jacobian = True)
@@ -312,10 +311,8 @@ if args.ALTER:
             B_matrix = torch.reshape(torch.cat(B_matrix, 1),[batch_size, grad_2.shape[0], grad_2.shape[1]])
             C_matrix = torch.reshape(torch.cat(C_matrix, 1),[batch_size, grad_3.shape[0], grad_3.shape[1]])
             U, S, VH = torch.svd(W1_copy)
-            print('U:',U.shape, S.shape,VH.shape)
             for i in range(len(A_matrix)):
                 u, s, vh = svd_drei(A_matrix[i], B_matrix[i], C_matrix[i], U, S, VH.T)
-
                 b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
                 B.append(b.cpu())
 
