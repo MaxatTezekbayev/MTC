@@ -313,7 +313,7 @@ if args.ALTER:
             C_matrix = torch.reshape(torch.cat(C_matrix, 1),[batch_size, grad_3.shape[0], grad_3.shape[1]])
             U, S, VH = torch.svd(W1_copy)
             print('U:',U.shape, S.shape,VH.shape)
-            for i in range(len(A)):
+            for i in range(len(A_matrix)):
                 u, s, vh = svd_drei(A_matrix[i], B_matrix[i], C_matrix[i], U, S, VH.T)
 
                 b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
