@@ -14,7 +14,6 @@ import argparse
 from collections import Counter
 torch.manual_seed(42)
 
-torch.autograd.set_detect_anomaly(True)
 parser = argparse.ArgumentParser(description='Implementation of Manifold Tangent Classifier',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
