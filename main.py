@@ -8,8 +8,8 @@ from torchvision import datasets, transforms
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from models import CAE1Layer, CAE2Layer, MTC, ALTER2Layer
-from utils import cae_h_loss, MTC_loss, alter_loss, calculate_B_alter, calculate_singular_vectors_B, knn_distances, sigmoid, Jacobian_for_ALTER, calc_jac
-
+from utils import cae_h_loss, MTC_loss, alter_loss, calculate_B_alter, calculate_singular_vectors_B, knn_distances, sigmoid, Jacobian_for_ALTER, calc_jac, svd_drei
+from tqdm import tqdm
 import argparse
 from collections import Counter
 torch.manual_seed(42)
@@ -198,7 +198,7 @@ if args.ALTER:
             train_z_iterator = iter(train_z_loader)
             B_iter = iter(B)
             last_step = len(train_loader)-1
-            for step, (x, _) in enumerate(train_loader):
+            for step, (x, _) in tqdm(enumerate(train_loader)):
                 #to always get some batch of z
                 try:
                     z = next(train_z_iterator)[0]
@@ -242,8 +242,6 @@ if args.ALTER:
                     model.b2.grad.data += b2_copy.grad.data
                     model.b3.grad.data += b3_copy.grad.data
 
-                    if step % 100 == 0:
-                        print(step, "Sum: ",W1_copy.grad.data.mean())
                     W1_copy.grad = None
                     W2_copy.grad = None
                     b1_copy.grad = None
@@ -271,7 +269,7 @@ if args.ALTER:
         # Bx, W1_copy, W2_copy,  b1_copy,  b2_copy, b3_copy, b_r_copy = calculate_B_alter(model, train_z_loader, k, batch_size)
 
         B =[]
-        for step, (z, _) in enumerate(train_z_loader):
+        for step, (z, _) in tqdm(enumerate(train_z_loader)):
             print(step)
             z = z.view(batch_size, -1).cuda()
             z.requires_grad_(True)
@@ -284,19 +282,46 @@ if args.ALTER:
             b3_copy = model.b3.detach().clone().requires_grad_(True).cuda()
             b_r_copy = model.b_r.detach().clone().requires_grad_(True).cuda()
 
-            code_data1 = torch.sigmoid(torch.matmul(z, W1_copy.t()) + b1_copy)
-            code_data2 = torch.sigmoid(torch.matmul(code_data1, W2_copy.t()) + b2_copy)
+            code_data1_z = torch.sigmoid(torch.matmul(z, W1_copy.t()) + b1_copy)
+            code_data2_z = torch.sigmoid(torch.matmul(code_data1, W2_copy.t()) + b2_copy)
             #decode
-            code_data3 = torch.sigmoid(torch.matmul(code_data2, W2_copy) + b3_copy)
-            recover = torch.sigmoid(torch.matmul(code_data3, W1_copy) + b_r_copy)
+            code_data3_z = torch.sigmoid(torch.matmul(code_data2, W2_copy) + b3_copy)
+            recover_z = torch.sigmoid(torch.matmul(code_data3, W1_copy) + b_r_copy)
 
-            code_data_z = [code_data1, code_data2, code_data3]
-            Jac_z = calc_jac(code_data_z, W1_copy, W2_copy)
-            u, sigma, v = torch.linalg.svd(Jac_z)
-            if step==0:
-                print("u",u.shape, sigma.shape, v.shape)
-            B.append(torch.matmul(u[:, :, :k], torch.matmul(torch.diag_embed(sigma)[:, :k, :k], v[:, :k, :])).cpu())
-            # recover, A, B, C, W4  = model(z, Drei = True)
+            # code_data_z = [code_data1, code_data2, code_data3]
+            # Jac_z = calc_jac(code_data_z, W1_copy, W2_copy)
+            # u, sigma, v = torch.linalg.svd(Jac_z)
+            
+            #drei
+            A = []
+            B = []
+            C = []
+            for i in range(batch_size): 
+                diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1_z[i], code_data1_z[i]))
+                grad_1 = torch.matmul(W1_copy.t(), diag_sigma_prime1)
+    
+                diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data2_z[i], code_data2_z[i]))
+                grad_2 = torch.matmul(W2_copy.t(), diag_sigma_prime2)
+        
+                diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3_z[i], code_data3_z[i]))
+                grad_3 = torch.matmul(W2_copy, diag_sigma_prime3)
+        
+                A.append(grad_1)
+                B.append(grad_2)
+                C.append(grad_3)
+            A = torch.reshape(torch.cat(A, 1),[batch_size, grad_1.shape[0], grad_1.shape[1]])
+            B = torch.reshape(torch.cat(B, 1),[batch_size, grad_2.shape[0], grad_2.shape[1]])
+            C = torch.reshape(torch.cat(C, 1),[batch_size, grad_3.shape[0], grad_3.shape[1]])
+            U, S, VH = torch.svd(W4)
+            print('U:',U.shape, S.shape,VH.shape)
+            for i in range(len(A)):
+                u, s, vh = svd_drei(A[i], B[i], C[i], U, S, VH.T)
+
+                b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
+                B.append(b.cpu())
+
+            # B.append(torch.matmul(u[:, :, :k], torch.matmul(torch.diag_embed(sigma)[:, :k, :k], v[:, :k, :])).cpu())
+            # # recover, A, B, C, W4  = model(z, Drei = True)
             # print(W4.shape)
             # U, S, VH = torch.svd(W4)
             # print('U:',U.shape, S.shape,VH.shape)
