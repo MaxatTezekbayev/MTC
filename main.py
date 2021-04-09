@@ -234,8 +234,11 @@ if args.ALTER:
                 loss.backward()
             else:
                 loss.backward(retain_graph = True)
+
             if epoch>0:
+                print(alter_step, model.W1.grad.data.sum())
                 print(alter_step, W1_copy.grad.data.sum())
+                print(alter_step, W2_copy.grad.data.sum())
                 model.W1.grad.data += W1_copy.grad.data
                 model.W2.grad.data += W2_copy.grad.data
                 model.b1.grad.data += b1_copy.grad.data
@@ -284,10 +287,6 @@ if args.ALTER:
             code_data3_z = torch.sigmoid(torch.matmul(code_data2_z, W2_copy) + b3_copy)
             recover_z = torch.matmul(code_data3_z, W1_copy) + b_r_copy
 
-            # code_data_z = [code_data1, code_data2, code_data3]
-            # Jac_z = calc_jac(code_data_z, W1_copy, W2_copy)
-            # u, sigma, v = torch.linalg.svd(Jac_z)
-            
             #drei
             A_matrix = []
             B_matrix = []
