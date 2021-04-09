@@ -8,7 +8,7 @@ from torchvision import datasets, transforms
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from models import CAE2Layer, MTC, ALTER2Layer
-from utils import cae_h_loss, MTC_loss, alter_loss, calculate_B_alter, calculate_singular_vectors_B, knn_distances, sigmoid, Jacobian_for_ALTER, calc_jac, svd_drei
+from utils import cae_h_loss, MTC_loss, alter_loss, calculate_B_alter, calculate_singular_vectors_B, knn_distances, sigmoid,  calc_jac, svd_drei
 from tqdm import tqdm
 import argparse
 from collections import Counter
