@@ -240,7 +240,7 @@ if args.ALTER:
 
             if epoch>0:
                 print(alter_step, model.W1.grad.data.abs().mean())
-                if type(W1_copy.grad.data) == type(None):
+                if type(W1_copy.grad) == type(None):
                     print(alter_step,'None')
                 else:
                     print(alter_step, W1_copy.grad.data.abs().mean())
