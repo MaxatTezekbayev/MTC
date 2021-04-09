@@ -225,7 +225,7 @@ if args.ALTER:
             Jac = calc_jac(model, code_data)
             Jac_noise = calc_jac(model, code_data_noise)
             Jac_z = calc_jac(model, code_data_z)
-            
+
             loss, loss1 = alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, args.lambd, args.gamma)
 
             x.requires_grad_(False)
@@ -235,7 +235,7 @@ if args.ALTER:
                 loss.backward()
             else:
                 loss.backward(retain_graph = True)
-            print(alter_step, model.W1.grad.data.abs().mean())
+
             train_loss += loss.item()
             MSE_loss += loss1.item()
             optimizer.step()
