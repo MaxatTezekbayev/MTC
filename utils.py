@@ -4,22 +4,6 @@ import torch.nn as nn
 
 
 
-def Jacobian_for_ALTER(model, code_data):
-    Jac=[]
-    for i in range(code_data[0].shape[0]): #batch_size
-        diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data[0][i], code_data[0][i]))
-        grad_1 = torch.matmul(model.W1.T, diag_sigma_prime1)
-
-        diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data[1][i], code_data[1][i]))
-        grad_2 = torch.matmul(model.W2.T, diag_sigma_prime2)
-
-        diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data[2][i], code_data[2][i]))
-        grad_3 = torch.matmul(model.W2, diag_sigma_prime3)
-
-        grad_4 = model.W1
-        Jac.append(torch.matmul(grad_1, torch.matmul(grad_2, torch.matmul(grad_3, grad_4))))
-    Jac = torch.reshape(torch.cat(Jac,1),[code_data[0].shape[0], model.W1.shape[1],  model.W1.shape[1]]) #[batch_size, recover.shape[1], x.shape[1]]
-    return Jac
 
 def cae_h_loss(imgs, imgs_noise,  recover, code_data, code_data_noise, lambd, gamma, batch_size):
     criterion = nn.MSELoss()
@@ -75,10 +59,14 @@ def svd_product(A, U, S, VH): # A*U*S*VH
     u_temp, s_temp, vh_temp = torch.svd(torch.matmul(R, torch.diag(S)))
     return [torch.matmul(Q, u_temp), s_temp, torch.matmul(vh_temp.T, VH)]
 
-def svd_drei(A, B, C, U, S, VH): # A*B*C*U*S*VH
-    U1, S1, VH1 = svd_product(C, U, S, VH)
-    U2, S2, VH2 = svd_product(B, U1, S1, VH1)
-    return svd_product(A, U2, S2, VH2)
+# def svd_drei(A, B, C, U, S, VH): # A*B*C*U*S*VH
+#     U1, S1, VH1 = svd_product(C, U, S, VH)
+#     U2, S2, VH2 = svd_product(B, U1, S1, VH1)
+#     return svd_product(A, U2, S2, VH2)
+
+def svd_drei(A, B, C, D): # A*B*C*U*S*VH
+    U, S, VH = torch.svd(torch.matmul(C, D), full_matrices=False)
+    return svd_product(torch.matmul(A, B), U, S, VH.T)
 
 def calc_jac(model, code_data):
     batch_size = code_data[0].shape[0]
@@ -137,9 +125,12 @@ def calculate_B_alter(model, train_z_loader, k, batch_size):
         A_matrix = torch.reshape(torch.cat(A_matrix, 1),[batch_size, grad_1.shape[0], grad_1.shape[1]])
         B_matrix = torch.reshape(torch.cat(B_matrix, 1),[batch_size, grad_2.shape[0], grad_2.shape[1]])
         C_matrix = torch.reshape(torch.cat(C_matrix, 1),[batch_size, grad_3.shape[0], grad_3.shape[1]])
-        U, S, VH = torch.svd(W1_copy)
+        # U, S, VH = torch.svd(W1_copy)
+
+
         for i in range(len(A_matrix)):
-            u, s, vh = svd_drei(A_matrix[i], B_matrix[i], C_matrix[i], U, S, VH.T)
+            # u, s, vh = svd_drei(A_matrix[i], B_matrix[i], C_matrix[i], U, S, VH.T)
+            u, s, vh = svd_drei(A_matrix[i], B_matrix[i], C_matrix[i], W1_copy)
             b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
             Bx.append(b.cpu())
     Bx= torch.stack(Bx)
