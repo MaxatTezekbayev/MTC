@@ -184,14 +184,13 @@ if args.ALTER:
 
     B = calculate_B_alter(model, train_z_loader, k, batch_size, first_time = True)
     train_x_iterator = iter(train_loader)
-    train_z_iterator = iter(train_z_loader)
-
     last_step = args.alter_steps-1
     for epoch in range(args.epochs):
         train_loss = 0
         test_loss = 0
         MSE_loss = 0
         B_iter = iter(B)
+        train_z_iterator = iter(train_z_loader)
         for alter_step in tqdm(range(args.alter_steps)):     
             #to always get some batch of x
             try:
