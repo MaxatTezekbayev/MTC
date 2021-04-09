@@ -235,18 +235,18 @@ if args.ALTER:
             else:
                 loss.backward(retain_graph = True)
             if epoch>0:
-                print(alter_step, W1_copy.grad.data.mean())
+                print(alter_step, W1_copy.grad.data.sum())
                 model.W1.grad.data += W1_copy.grad.data
                 model.W2.grad.data += W2_copy.grad.data
                 model.b1.grad.data += b1_copy.grad.data
                 model.b2.grad.data += b2_copy.grad.data
                 model.b3.grad.data += b3_copy.grad.data
 
-                W1_copy.grad.zero_()
-                W2_copy.grad.zero_()
-                b1_copy.grad.zero_()
-                b2_copy.grad.zero_()
-                b3_copy.grad.zero_()
+                W1_copy.grad.data.zero_()
+                W2_copy.grad.data.zero_()
+                b1_copy.grad.data.zero_()
+                b2_copy.grad.data.zero_()
+                b3_copy.grad.data.zero_()
             
             # print(step)
             train_loss += loss.item()
