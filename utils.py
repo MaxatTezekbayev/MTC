@@ -49,7 +49,7 @@ def alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, lambd, gamma):
     # loss3 = torch.mean(torch.sum(torch.pow(Jac_z - b, 2), dim = [1 ,2]))
 
     # loss = loss1 + (gamma * loss2) + lambd * loss3
-    loss1 = torch.mean(torch.sum(torch.pow(Jac_z - b, 2)))
+    loss1 = torch.mean(torch.sum(torch.pow(b, 2)))
     loss = loss1
     return loss, loss1
 
@@ -98,9 +98,7 @@ def calc_jac(model, code_data):
     Jac = torch.reshape(torch.cat(Jac,1),[batch_size, model.W1.shape[1], model.W1.shape[1]])
     return Jac
 
-def calculate_B_alter(model, train_z_loader, k, batch_size, first_time = False):
-    if first_time:
-        return torch.zeros((len(train_z_loader),1))
+def calculate_B_alter(model, train_z_loader, k, batch_size):
     Bx =[]
     for step, (z, _) in enumerate(train_z_loader):
         print(step)

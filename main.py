@@ -182,7 +182,8 @@ if args.ALTER:
     writer = SummaryWriter('runs/' + "_".join(map(str, ["alter", args.code_size, args.code_size2, args.learning_rate, args.lambd, args.gamma, args.epsilon])))
     MSELoss = nn.MSELoss()
 
-    B = calculate_B_alter(model, train_z_loader, k, batch_size, first_time = True)
+    B = torch.zeros((len(train_z_loader),1))
+
     train_x_iterator = iter(train_loader)
     last_step = args.alter_steps-1
     for epoch in range(args.epochs):
@@ -224,8 +225,10 @@ if args.ALTER:
             Jac = calc_jac(model, code_data)
             Jac_noise = calc_jac(model, code_data_noise)
             Jac_z = calc_jac(model, code_data_z)
-
-            loss, loss1 = alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, args.lambd, args.gamma)
+            if epoch==0:
+                loss = torch.mean(torch.sum(torch.pow(Jac_z - b, 2)))
+            else:
+                loss, loss1 = alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, args.lambd, args.gamma)
 
             x.requires_grad_(False)
             x_noise.requires_grad_(False)
@@ -252,8 +255,8 @@ if args.ALTER:
                 # b3_copy.grad.data.zero_()
             
             # print(step)
-            train_loss += loss.item()
-            MSE_loss += loss1.item()
+            # train_loss += loss.item()
+            # MSE_loss += loss1.item()
             optimizer.step()
             optimizer.zero_grad()
 
