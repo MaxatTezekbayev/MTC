@@ -237,28 +237,9 @@ if args.ALTER:
                 loss.backward()
             else:
                 loss.backward(retain_graph = True)
-
-            if epoch>0:
-                print(alter_step, model.W1.grad.data.abs().mean())
-                if type(W1_copy.grad) == type(None):
-                    print(alter_step,'None')
-                else:
-                    print(alter_step, W1_copy.grad.data.abs().mean())
-                # model.W1.grad.data += W1_copy.grad.data
-                # model.W2.grad.data += W2_copy.grad.data
-                # model.b1.grad.data += b1_copy.grad.data
-                # model.b2.grad.data += b2_copy.grad.data
-                # model.b3.grad.data += b3_copy.grad.data
-
-                # W1_copy.grad.data.zero_()
-                # W2_copy.grad.data.zero_()
-                # b1_copy.grad.data.zero_()
-                # b2_copy.grad.data.zero_()
-                # b3_copy.grad.data.zero_()
-            
-            # print(step)
-            # train_loss += loss.item()
-            # MSE_loss += loss1.item()
+            print(alter_step, model.W1.grad.data.abs.mean())
+            train_loss += loss.item()
+            MSE_loss += loss1.item()
             optimizer.step()
             optimizer.zero_grad()
 
@@ -273,50 +254,7 @@ if args.ALTER:
         writer.add_scalar('ALTER/Loss/test_MSE', (test_loss / test_num_batches), epoch)
         print(epoch, train_loss/num_batches)
         #calculate B
-        B =[]
-        for step, (z, _) in enumerate(tqdm(train_z_loader)):
-            z = z.view(batch_size, -1).cuda()
-            z.requires_grad_(True)
- 
-            W1_copy = model.W1.clone().requires_grad_(True).cuda()
-            W2_copy = model.W2.clone().requires_grad_(True).cuda()
-            b1_copy = model.b1.clone().requires_grad_(True).cuda()
-            b2_copy = model.b2.clone().requires_grad_(True).cuda()
-            b3_copy = model.b3.clone().requires_grad_(True).cuda()
-            b_r_copy = model.b_r.clone().requires_grad_(True).cuda()
-
-            code_data1_z = torch.sigmoid(torch.matmul(z, W1_copy.t()) + b1_copy)
-            code_data2_z = torch.sigmoid(torch.matmul(code_data1_z, W2_copy.t()) + b2_copy)
-            #decode
-            code_data3_z = torch.sigmoid(torch.matmul(code_data2_z, W2_copy) + b3_copy)
-            recover_z = torch.matmul(code_data3_z, W1_copy) + b_r_copy
-
-            #drei
-            A_matrix = []
-            B_matrix = []
-            C_matrix = []
-            for i in range(batch_size): 
-                diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1_z[i], code_data1_z[i]))
-                grad_1 = torch.matmul(W1_copy.t(), diag_sigma_prime1)
-
-                diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data2_z[i], code_data2_z[i]))
-                grad_2 = torch.matmul(W2_copy.t(), diag_sigma_prime2)
-        
-                diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3_z[i], code_data3_z[i]))
-                grad_3 = torch.matmul(W2_copy, diag_sigma_prime3)
-        
-                A_matrix.append(grad_1)
-                B_matrix.append(grad_2)
-                C_matrix.append(grad_3)
-            A_matrix = torch.reshape(torch.cat(A_matrix, 1),[batch_size, grad_1.shape[0], grad_1.shape[1]])
-            B_matrix = torch.reshape(torch.cat(B_matrix, 1),[batch_size, grad_2.shape[0], grad_2.shape[1]])
-            C_matrix = torch.reshape(torch.cat(C_matrix, 1),[batch_size, grad_3.shape[0], grad_3.shape[1]])
-            U, S, VH = torch.svd(W1_copy)
-            for i in range(len(A_matrix)):
-                u, s, vh = svd_drei(A_matrix[i], B_matrix[i], C_matrix[i], U, S, VH.T)
-                b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
-                B.append(b.cpu())
-        B= torch.stack(B)
+        B =calculate_B_alter(model, train_z_loader, k, batch_size)
     #end of training
 
     if args.save_dir_for_ALTER:
