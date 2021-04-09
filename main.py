@@ -64,7 +64,7 @@ parser.add_argument('--M', type=int, default=100,
                     help='the size of the subset for forcing the Jacobian to be of rank not greater than k')
 parser.add_argument('--k', type=int, default=40,
                     help='desired rank k for alternating algorithm')
-parser.add_argument('--alter_steps', type=int, default=1,
+parser.add_argument('--alter_steps', type=int, default=1000,
                     help='steps for alternating algorithm ')
 parser.add_argument('--save_dir_for_ALTER', type=str, default=None,
                     help='path for saving weights')
@@ -186,7 +186,7 @@ if args.ALTER:
     train_x_iterator = iter(train_loader)
     train_z_iterator = iter(train_z_loader)
     B_iter = iter(B)
-    last_step = len(args.alter_steps)-1
+    last_step = alter_steps-1
     for epoch in range(args.epochs):
         train_loss = 0
         test_loss = 0
