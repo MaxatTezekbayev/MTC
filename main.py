@@ -240,13 +240,12 @@ if args.ALTER:
                 model.b1.grad.data += b1_copy.grad.data
                 model.b2.grad.data += b2_copy.grad.data
                 model.b3.grad.data += b3_copy.grad.data
-
-                W1_copy.grad = None
-                W2_copy.grad = None
-                b1_copy.grad = None
-                b2_copy.grad = None
-                b3_copy.grad = None
-                # W1_copy.grad = 0
+                print(alter_step, W1_copy.grad.data.mean())
+                W1_copy.grad.zero_()
+                W2_copy.grad.zero_()
+                b1_copy.grad.zero_()
+                b2_copy.grad.zero_()
+                b3_copy.grad.zero_()
             
             # print(step)
             train_loss += loss.item()
@@ -271,12 +270,12 @@ if args.ALTER:
             z.requires_grad_(True)
             # recover_z, code_data_z = model(z, calculate_jacobian = True)
 
-            W1_copy = model.W1.detach().clone().requires_grad_(True).cuda()
-            W2_copy = model.W2.detach().clone().requires_grad_(True).cuda()
-            b1_copy = model.b1.detach().clone().requires_grad_(True).cuda()
-            b2_copy = model.b2.detach().clone().requires_grad_(True).cuda()
-            b3_copy = model.b3.detach().clone().requires_grad_(True).cuda()
-            b_r_copy = model.b_r.detach().clone().requires_grad_(True).cuda()
+            W1_copy = model.W1.clone().detach().requires_grad_(True).cuda()
+            W2_copy = model.W2.clone().detach().requires_grad_(True).cuda()
+            b1_copy = model.b1.clone().detach().requires_grad_(True).cuda()
+            b2_copy = model.b2.clone().detach().requires_grad_(True).cuda()
+            b3_copy = model.b3.clone().detach().requires_grad_(True).cuda()
+            b_r_copy = model.b_r.clone().detach().requires_grad_(True).cuda()
 
             code_data1_z = torch.sigmoid(torch.matmul(z, W1_copy.t()) + b1_copy)
             code_data2_z = torch.sigmoid(torch.matmul(code_data1_z, W2_copy.t()) + b2_copy)
