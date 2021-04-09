@@ -185,12 +185,13 @@ if args.ALTER:
     B = calculate_B_alter(model, train_z_loader, k, batch_size, first_time = True)
     train_x_iterator = iter(train_loader)
     train_z_iterator = iter(train_z_loader)
-    B_iter = iter(B)
+
     last_step = args.alter_steps-1
     for epoch in range(args.epochs):
         train_loss = 0
         test_loss = 0
         MSE_loss = 0
+        B_iter = iter(B)
         for alter_step in tqdm(range(args.alter_steps)):     
             #to always get some batch of x
             try:
@@ -235,12 +236,13 @@ if args.ALTER:
             else:
                 loss.backward(retain_graph = True)
             if epoch>0:
+                print(alter_step, W1_copy.grad.data.mean())
                 model.W1.grad.data += W1_copy.grad.data
                 model.W2.grad.data += W2_copy.grad.data
                 model.b1.grad.data += b1_copy.grad.data
                 model.b2.grad.data += b2_copy.grad.data
                 model.b3.grad.data += b3_copy.grad.data
-                print(alter_step, W1_copy.grad.data.mean())
+
                 W1_copy.grad.zero_()
                 W2_copy.grad.zero_()
                 b1_copy.grad.zero_()
