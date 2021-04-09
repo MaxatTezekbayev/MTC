@@ -245,11 +245,11 @@ if args.ALTER:
                 model.b2.grad.data += b2_copy.grad.data
                 model.b3.grad.data += b3_copy.grad.data
 
-                W1_copy.grad.data.zero_()
-                W2_copy.grad.data.zero_()
-                b1_copy.grad.data.zero_()
-                b2_copy.grad.data.zero_()
-                b3_copy.grad.data.zero_()
+                # W1_copy.grad.data.zero_()
+                # W2_copy.grad.data.zero_()
+                # b1_copy.grad.data.zero_()
+                # b2_copy.grad.data.zero_()
+                # b3_copy.grad.data.zero_()
             
             # print(step)
             train_loss += loss.item()
