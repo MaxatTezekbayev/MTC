@@ -99,7 +99,7 @@ def calc_jac(model, code_data):
     return Jac
 
 def calculate_B_alter(model, train_z_loader, k, batch_size):
-    for step, (z, _) in enumerate(tqdm(train_z_loader)):
+    for step, (z, _) in enumerate(train_z_loader):
         z = z.view(batch_size, -1).cuda()
         z.requires_grad_(True)
 
