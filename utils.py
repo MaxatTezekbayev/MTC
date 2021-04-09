@@ -59,14 +59,14 @@ def svd_product(A, U, S, VH): # A*U*S*VH
     u_temp, s_temp, vh_temp = torch.svd(torch.matmul(R, torch.diag(S)))
     return [torch.matmul(Q, u_temp), s_temp, torch.matmul(vh_temp.T, VH)]
 
-# def svd_drei(A, B, C, U, S, VH): # A*B*C*U*S*VH
-#     U1, S1, VH1 = svd_product(C, U, S, VH)
-#     U2, S2, VH2 = svd_product(B, U1, S1, VH1)
-#     return svd_product(A, U2, S2, VH2)
+def svd_drei(A, B, C, U, S, VH): # A*B*C*U*S*VH
+    U1, S1, VH1 = svd_product(C, U, S, VH)
+    U2, S2, VH2 = svd_product(B, U1, S1, VH1)
+    return svd_product(A, U2, S2, VH2)
 
-def svd_drei(A, B, C, D): # A*B*C*U*S*VH
-    U, S, VH = torch.svd(torch.matmul(C, D))
-    return svd_product(torch.matmul(A, B), U, S, VH.T)
+# def svd_drei2(A, B, C, D): # A*B*C*U*S*VH
+#     U, S, VH = torch.svd(torch.matmul(C, D))
+#     return svd_product(torch.matmul(A, B), U, S, VH.T)
 
 def calc_jac(model, code_data):
     batch_size = code_data[0].shape[0]
@@ -129,8 +129,8 @@ def calculate_B_alter(model, train_z_loader, k, batch_size):
 
 
         for i in range(len(A_matrix)):
-            # u, s, vh = svd_drei(A_matrix[i], B_matrix[i], C_matrix[i], U, S, VH.T)
-            u, s, vh = svd_drei(A_matrix[i], B_matrix[i], C_matrix[i], W1_copy)
+            u, s, vh = svd_drei(A_matrix[i], B_matrix[i], C_matrix[i], U, S, VH.T)
+            # u, s, vh = svd_drei2(A_matrix[i], B_matrix[i], C_matrix[i], W1_copy)
             b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
             Bx.append(b.cpu())
     Bx= torch.stack(Bx)
