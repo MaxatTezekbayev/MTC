@@ -65,7 +65,7 @@ def svd_product(A, U, S, VH): # A*U*S*VH
 #     return svd_product(A, U2, S2, VH2)
 
 def svd_drei(A, B, C, D): # A*B*C*U*S*VH
-    U, S, VH = torch.svd(torch.matmul(C, D), full_matrices=False)
+    U, S, VH = torch.svd(torch.matmul(C, D))
     return svd_product(torch.matmul(A, B), U, S, VH.T)
 
 def calc_jac(model, code_data):
