@@ -236,9 +236,9 @@ if args.ALTER:
                 loss.backward(retain_graph = True)
 
             if epoch>0:
-                print(alter_step, model.W1.grad.data.sum())
-                print(alter_step, W1_copy.grad.data.sum())
-                print(alter_step, W2_copy.grad.data.sum())
+                print(alter_step, model.W1.grad.data.abs().mean())
+                print(alter_step, W1_copy.grad.data.abs().mean())
+                print(alter_step, W2_copy.grad.data.abs().mean())
                 model.W1.grad.data += W1_copy.grad.data
                 model.W2.grad.data += W2_copy.grad.data
                 model.b1.grad.data += b1_copy.grad.data
@@ -272,14 +272,13 @@ if args.ALTER:
         for step, (z, _) in enumerate(tqdm(train_z_loader)):
             z = z.view(batch_size, -1).cuda()
             z.requires_grad_(True)
-            # recover_z, code_data_z = model(z, calculate_jacobian = True)
-
-            W1_copy = model.W1.detach().clone().requires_grad_(True).cuda()
-            W2_copy = model.W2.detach().clone().requires_grad_(True).cuda()
-            b1_copy = model.b1.detach().clone().requires_grad_(True).cuda()
-            b2_copy = model.b2.detach().clone().requires_grad_(True).cuda()
-            b3_copy = model.b3.detach().clone().requires_grad_(True).cuda()
-            b_r_copy = model.b_r.detach().clone().requires_grad_(True).cuda()
+ 
+            W1_copy = model.W1.clone().requires_grad_(True).cuda()
+            W2_copy = model.W2.clone().requires_grad_(True).cuda()
+            b1_copy = model.b1.clone().requires_grad_(True).cuda()
+            b2_copy = model.b2.clone().requires_grad_(True).cuda()
+            b3_copy = model.b3.clone().requires_grad_(True).cuda()
+            b_r_copy = model.b_r.clone().requires_grad_(True).cuda()
 
             code_data1_z = torch.sigmoid(torch.matmul(z, W1_copy.t()) + b1_copy)
             code_data2_z = torch.sigmoid(torch.matmul(code_data1_z, W2_copy.t()) + b2_copy)
