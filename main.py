@@ -230,7 +230,7 @@ if args.ALTER:
             x.requires_grad_(False)
             x_noise.requires_grad_(False)
             z.requires_grad_(False)
-            if step == last_step:
+            if alter_step == last_step:
                 loss.backward()
             else:
                 loss.backward(retain_graph = True)
