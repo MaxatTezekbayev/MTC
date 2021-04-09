@@ -142,7 +142,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size):
             u, s, vh = svd_drei(A_matrix[i], B_matrix[i], C_matrix[i], U, S, VH.T)
             b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
             Bx.append(b.cpu())
-        Bx= torch.stack(Bx)
+    Bx= torch.stack(Bx)
     return Bx
     
 def calculate_singular_vectors_B(model, train_loader, dM, batch_size):
