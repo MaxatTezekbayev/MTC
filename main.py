@@ -237,7 +237,7 @@ if args.ALTER:
                 loss.backward()
             else:
                 loss.backward(retain_graph = True)
-            print(alter_step, model.W1.grad.data.abs.mean())
+            print(alter_step, model.W1.grad.data.abs().mean())
             train_loss += loss.item()
             MSE_loss += loss1.item()
             optimizer.step()
