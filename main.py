@@ -7,7 +7,7 @@ from torch.utils.data import SubsetRandomSampler
 from torchvision import datasets, transforms
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
-from models import CAE1Layer, CAE2Layer, MTC, ALTER2Layer
+from models import CAE2Layer, MTC, ALTER2Layer
 from utils import cae_h_loss, MTC_loss, alter_loss, calculate_B_alter, calculate_singular_vectors_B, knn_distances, sigmoid, Jacobian_for_ALTER, calc_jac, svd_drei
 from tqdm import tqdm
 import argparse
@@ -32,9 +32,9 @@ parser.add_argument('--lambd', type=float, default=0.0)
 parser.add_argument('--gamma', type=float, default=0.01,
                     help='gamma')
 
-parser.add_argument('--code_size', type=int, default=60,
+parser.add_argument('--code_size', type=int, default=120,
                     help='dimension of hidden layer')
-parser.add_argument('--code_size2', type=int, default=None,
+parser.add_argument('--code_size2', type=int, default=60,
                     help='dimension of hidden layer')
 
 parser.add_argument('--epsilon', type=float, default=0.1,
@@ -43,7 +43,7 @@ parser.add_argument('--epsilon', type=float, default=0.1,
 parser.add_argument('--epochs', type=int, default=100,
                     help='upper epoch limit')
 
-parser.add_argument('--numlayers', type=int, default=1,
+parser.add_argument('--numlayers', type=int, default=2,
                     help='layers of CAE+H (1 or 2)')
 
 parser.add_argument('--save_dir_for_CAE', type=str, default=None,
@@ -64,8 +64,8 @@ parser.add_argument('--M', type=int, default=100,
                     help='the size of the subset for forcing the Jacobian to be of rank not greater than k')
 parser.add_argument('--k', type=int, default=40,
                     help='desired rank k for alternating algorithm')
-parser.add_argument('--alter_epochs', type=int, default=1,
-                    help='miniepochs for alternating algorithm ')
+parser.add_argument('--alter_steps', type=int, default=1,
+                    help='steps for alternating algorithm ')
 parser.add_argument('--save_dir_for_ALTER', type=str, default=None,
                     help='path for saving weights')
 
@@ -110,12 +110,10 @@ test_num_batches = len(test_dataset) // batch_size
 
 
 if args.CAEH:
-    if args.numlayers == 1:
-        model = CAE1Layer(dimensionality, args.code_size)
-    elif args.numlayers == 2:
+    if args.numlayers == 2:
         model = CAE2Layer(dimensionality, [args.code_size, args.code_size2])
     else:
-        raise Exception("Sorry, numlayers only 1 or 2")
+        raise Exception("Sorry, numlayers only 2")
 
 elif args.ALTER:
     if args.numlayers == 2:
@@ -129,11 +127,10 @@ optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 if args.pretrained_CAEH and args.train_CAEH:
     raise Exception("Select only one: pretrained_CAEH or train_CAEH")
 
-
 if args.pretrained_CAEH:
     model.load_state_dict(torch.load(args.pretrained_CAEH))
 
-# train CAE+H
+# train CAE+H (ALTER is below)
 elif args.train_CAEH is True:
     writer = SummaryWriter('runs/' + "_".join(map(str, ["caeh", args.code_size, args.code_size2, args.learning_rate, args.lambd, args.gamma, args.epsilon])))
     MSELoss = nn.MSELoss()
@@ -146,7 +143,7 @@ elif args.train_CAEH is True:
             x.requires_grad_(True)
             x_noise = torch.autograd.Variable(x.data + torch.normal(0, args.epsilon, size=[batch_size, dimensionality]).cuda(), requires_grad=True)
 
-            recover, code_data, code_data_noise = model(x, calculate_jacobian=True)
+            recover, code_data, code_data_noise, Jac = model(x, calculate_jacobian=True)
             loss, loss1 = cae_h_loss(imgs, imgs_noise, recover, code_data,
                                      code_data_noise, args.lambd, args.gamma, batch_size)
 
@@ -186,87 +183,88 @@ if args.ALTER:
     MSELoss = nn.MSELoss()
 
     B = calculate_B_alter(model, train_z_loader, k, batch_size, first_time = True)
-
-    B = torch.zeros((len(train_z_loader),1))
+    train_x_iterator = iter(train_loader)
+    train_z_iterator = iter(train_z_loader)
+    B_iter = iter(B)
+    last_step = len(args.alter_steps)-1
     for epoch in range(args.epochs):
-        for alter_epoch in range(args.alter_epochs):
-            train_loss = 0
-            test_loss = 0
-            MSE_loss = 0
+        train_loss = 0
+        test_loss = 0
+        MSE_loss = 0
+        for alter_step in range(args.alter_steps):     
+            #to always get some batch of x
+            try:
+                x = next(train_x_iterator)[0]
+            except StopIteration:
+                train_x_iterator = iter(train_loader)
+                x = next(train_x_iterator)[0]
 
-            train_z_iterator = iter(train_z_loader)
-            B_iter = iter(B)
-            last_step = len(train_loader)-1
-            for step, (x, _) in enumerate(tqdm(train_loader)):
-                #to always get some batch of z
-                try:
-                    z = next(train_z_iterator)[0]
-                    b = next(B_iter)
-                except:
-                    train_z_iterator = iter(train_z_loader)
-                    B_iter = iter(B)
-                    z = next(train_z_iterator)[0]
-                    b = next(B_iter)
+            #to always get some batch of z, b
+            try:
+                z = next(train_z_iterator)[0]
+                b = next(B_iter)
+            except StopIteration:
+                train_z_iterator = iter(train_z_loader)
+                B_iter = iter(B)
+                z = next(train_z_iterator)[0]
+                b = next(B_iter)
 
-                x = x.view(batch_size, -1).cuda()
-                z = z.view(batch_size, -1).cuda()
-                b = b.cuda()
-                
-                x.requires_grad_(True)
-                z.requires_grad_(True)
-                x_noise = torch.autograd.Variable(x.data + torch.normal(0, args.epsilon, size=[batch_size, dimensionality]).cuda(), requires_grad=True)
+            x = x.view(batch_size, -1).cuda()
+            z = z.view(batch_size, -1).cuda()
+            b = b.cuda()
 
-                recover, code_data = model(x, calculate_jacobian=True)
-                _, code_data_noise = model(x_noise, calculate_jacobian=True)
-                _, code_data_z = model(z, calculate_jacobian=True)
-                
+            x.requires_grad_(True)
+            z.requires_grad_(True)
+            x_noise = torch.autograd.Variable(x.data + torch.normal(0, args.epsilon, size=[batch_size, dimensionality]).cuda(), requires_grad=True)
 
-                Jac = calc_jac(code_data, model.W1, model.W2)
-                Jac_noise = calc_jac(code_data_noise, model.W1, model.W2)
-                Jac_z = calc_jac(code_data_z, model.W1, model.W2)
-                loss, loss1 = alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, args.lambd, args.gamma)
+            recover, code_data = model(x)
+            _, code_data_noise = model(x_noise)
+            _, code_data_z = model(z)
+            
+            Jac = calc_jac(model, code_data)
+            Jac_noise = calc_jac(model, code_data_noise)
+            Jac_z = calc_jac(model, code_data_z)
 
-                x.requires_grad_(False)
-                x_noise.requires_grad_(False)
-                z.requires_grad_(False)
-                if step != last_step:
-                    loss.backward(retain_graph = True)
-                else:
-                    loss.backward()
-                if epoch>0:
-                    # print("Sum: ",W1_copy.grad.data.mean())
-                    model.W1.grad.data += W1_copy.grad.data
-                    model.W2.grad.data += W2_copy.grad.data
-                    model.b1.grad.data += b1_copy.grad.data
-                    model.b2.grad.data += b2_copy.grad.data
-                    model.b3.grad.data += b3_copy.grad.data
+            loss, loss1 = alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, args.lambd, args.gamma)
 
-                    W1_copy.grad = None
-                    W2_copy.grad = None
-                    b1_copy.grad = None
-                    b2_copy.grad = None
-                    b3_copy.grad = None
-                    # W1_copy.grad = 0
-                
-                # print(step)
-                train_loss += loss.item()
-                MSE_loss += loss1.item()
-                optimizer.step()
-                optimizer.zero_grad()
+            x.requires_grad_(False)
+            x_noise.requires_grad_(False)
+            z.requires_grad_(False)
+            if step == last_step:
+                loss.backward()
+            else:
+                loss.backward(retain_graph = True)
+            if epoch>0:
+                model.W1.grad.data += W1_copy.grad.data
+                model.W2.grad.data += W2_copy.grad.data
+                model.b1.grad.data += b1_copy.grad.data
+                model.b2.grad.data += b2_copy.grad.data
+                model.b3.grad.data += b3_copy.grad.data
 
-            with torch.no_grad():
-                for test_x, _ in test_loader:
-                    test_x = test_x.view(batch_size, -1).cuda()
-                    test_recover, _ = model(test_x)
-                    test_loss += MSELoss(test_recover, test_x).item()
+                W1_copy.grad = None
+                W2_copy.grad = None
+                b1_copy.grad = None
+                b2_copy.grad = None
+                b3_copy.grad = None
+                # W1_copy.grad = 0
+            
+            # print(step)
+            train_loss += loss.item()
+            MSE_loss += loss1.item()
+            optimizer.step()
+            optimizer.zero_grad()
 
-            writer.add_scalar('ALTER/Loss/train', (train_loss / num_batches), epoch)
-            writer.add_scalar('ALTER/Loss/train_MSE', (MSE_loss / num_batches), epoch)
-            writer.add_scalar('ALTER/Loss/test_MSE', (test_loss / test_num_batches), epoch)
-            print(epoch, train_loss/num_batches)
+        with torch.no_grad():
+            for test_x, _ in test_loader:
+                test_x = test_x.view(batch_size, -1).cuda()
+                test_recover, _ = model(test_x)
+                test_loss += MSELoss(test_recover, test_x).item()
 
-        # Bx, W1_copy, W2_copy,  b1_copy,  b2_copy, b3_copy, b_r_copy = calculate_B_alter(model, train_z_loader, k, batch_size)
-
+        writer.add_scalar('ALTER/Loss/train', (train_loss / num_batches), epoch)
+        writer.add_scalar('ALTER/Loss/train_MSE', (MSE_loss / num_batches), epoch)
+        writer.add_scalar('ALTER/Loss/test_MSE', (test_loss / test_num_batches), epoch)
+        print(epoch, train_loss/num_batches)
+        #calculate B
         B =[]
         for step, (z, _) in enumerate(tqdm(train_z_loader)):
             z = z.view(batch_size, -1).cuda()
@@ -297,7 +295,7 @@ if args.ALTER:
             for i in range(batch_size): 
                 diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1_z[i], code_data1_z[i]))
                 grad_1 = torch.matmul(W1_copy.t(), diag_sigma_prime1)
-    
+
                 diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data2_z[i], code_data2_z[i]))
                 grad_2 = torch.matmul(W2_copy.t(), diag_sigma_prime2)
         
@@ -315,18 +313,6 @@ if args.ALTER:
                 u, s, vh = svd_drei(A_matrix[i], B_matrix[i], C_matrix[i], U, S, VH.T)
                 b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
                 B.append(b.cpu())
-
-            # B.append(torch.matmul(u[:, :, :k], torch.matmul(torch.diag_embed(sigma)[:, :k, :k], v[:, :k, :])).cpu())
-            # # recover, A, B, C, W4  = model(z, Drei = True)
-            # print(W4.shape)
-            # U, S, VH = torch.svd(W4)
-            # print('U:',U.shape, S.shape,VH.shape)
-            # for i in range(len(A)):
-            #     u, s, vh = svd_drei(A[i], B[i], C[i], U, S, VH.T)
-
-            #     b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
-            #     Bx.append(b.cpu())
-            
         B= torch.stack(B)
     #end of training
 
