@@ -240,13 +240,15 @@ if args.ALTER:
 
             if epoch>0:
                 print(alter_step, model.W1.grad.data.abs().mean())
-                print(alter_step, W1_copy.grad.data.abs().mean())
-                print(alter_step, W2_copy.grad.data.abs().mean())
-                model.W1.grad.data += W1_copy.grad.data
-                model.W2.grad.data += W2_copy.grad.data
-                model.b1.grad.data += b1_copy.grad.data
-                model.b2.grad.data += b2_copy.grad.data
-                model.b3.grad.data += b3_copy.grad.data
+                if type(W1_copy.grad.data) == type(None):
+                    print(alter_step,'None')
+                else:
+                    print(alter_step, W1_copy.grad.data.abs().mean())
+                # model.W1.grad.data += W1_copy.grad.data
+                # model.W2.grad.data += W2_copy.grad.data
+                # model.b1.grad.data += b1_copy.grad.data
+                # model.b2.grad.data += b2_copy.grad.data
+                # model.b3.grad.data += b3_copy.grad.data
 
                 # W1_copy.grad.data.zero_()
                 # W2_copy.grad.data.zero_()
