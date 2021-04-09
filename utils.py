@@ -49,7 +49,7 @@ def alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, lambd, gamma):
     # loss3 = torch.mean(torch.sum(torch.pow(Jac_z - b, 2), dim = [1 ,2]))
 
     # loss = loss1 + (gamma * loss2) + lambd * loss3
-    loss1 = torch.mean(torch.sum(torch.pow(Jac_z, 2)))
+    loss1 = torch.mean(torch.sum(torch.pow(b, 2)))
     loss = loss1
     return loss, loss1
 
