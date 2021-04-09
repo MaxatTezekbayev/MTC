@@ -191,7 +191,7 @@ if args.ALTER:
         train_loss = 0
         test_loss = 0
         MSE_loss = 0
-        for alter_step in range(args.alter_steps):     
+        for alter_step in tqdm(range(args.alter_steps)):     
             #to always get some batch of x
             try:
                 x = next(train_x_iterator)[0]
