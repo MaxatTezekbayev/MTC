@@ -186,7 +186,7 @@ if args.ALTER:
     train_x_iterator = iter(train_loader)
     train_z_iterator = iter(train_z_loader)
     B_iter = iter(B)
-    last_step = alter_steps-1
+    last_step = args.alter_steps-1
     for epoch in range(args.epochs):
         train_loss = 0
         test_loss = 0
