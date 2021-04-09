@@ -99,44 +99,49 @@ def calc_jac(model, code_data):
     return Jac
 
 def calculate_B_alter(model, train_z_loader, k, batch_size):
-    Bx =[]
-    for step, (z, _) in enumerate(train_z_loader):
-        print(step)
+    for step, (z, _) in enumerate(tqdm(train_z_loader)):
         z = z.view(batch_size, -1).cuda()
         z.requires_grad_(True)
-        # recover_z, code_data_z = model(z, calculate_jacobian = True)
 
-        W1_copy = model.W1.detach().clone().requires_grad_(True).cuda()
-        W2_copy = model.W2.detach().clone().requires_grad_(True).cuda()
-        b1_copy = model.b1.detach().clone().requires_grad_(True).cuda()
-        b2_copy = model.b2.detach().clone().requires_grad_(True).cuda()
-        b3_copy = model.b3.detach().clone().requires_grad_(True).cuda()
-        b_r_copy = model.b_r.detach().clone().requires_grad_(True).cuda()
+        W1_copy = model.W1.clone()
+        W2_copy = model.W2.clone()
+        b1_copy = model.b1.clone()
+        b2_copy = model.b2.clone()
+        b3_copy = model.b3.clone()
+        b_r_copy = model.b_r.clone()
 
-        code_data1 = torch.sigmoid(torch.matmul(z, W1_copy.t()) + b1_copy)
-        code_data2 = torch.sigmoid(torch.matmul(code_data1, W2_copy.t()) + b2_copy)
+        code_data1_z = torch.sigmoid(torch.matmul(z, W1_copy.t()) + b1_copy)
+        code_data2_z = torch.sigmoid(torch.matmul(code_data1_z, W2_copy.t()) + b2_copy)
         #decode
-        code_data3 = torch.sigmoid(torch.matmul(code_data2, W2_copy) + b3_copy)
-        recover = torch.sigmoid(torch.matmul(code_data3, W1_copy) + b_r_copy)
+        code_data3_z = torch.sigmoid(torch.matmul(code_data2_z, W2_copy) + b3_copy)
+        recover_z = torch.matmul(code_data3_z, W1_copy) + b_r_copy
 
-        code_data_z = [code_data1, code_data2, code_data3]
-        Jac_z = calc_jac(code_data_z, W1_copy, W2_copy)
-        u, sigma, v = torch.linalg.svd(Jac_z)
-        if step==0:
-            print("u",u.shape, sigma.shape, v.shape)
-        Bx.append(torch.matmul(u[:, :, :k], torch.matmul(torch.diag_embed(sigma)[:, :k, :k], v[:, :k, :])).cpu())
-        # recover, A, B, C, W4  = model(z, Drei = True)
-        # print(W4.shape)
-        # U, S, VH = torch.svd(W4)
-        # print('U:',U.shape, S.shape,VH.shape)
-        # for i in range(len(A)):
-        #     u, s, vh = svd_drei(A[i], B[i], C[i], U, S, VH.T)
+        #drei
+        A_matrix = []
+        B_matrix = []
+        C_matrix = []
+        for i in range(batch_size): 
+            diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1_z[i], code_data1_z[i]))
+            grad_1 = torch.matmul(W1_copy.t(), diag_sigma_prime1)
 
-        #     b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
-        #     Bx.append(b.cpu())
-        
-    Bx= torch.stack(Bx)
-    return Bx, W1_copy, W2_copy,  b1_copy,  b2_copy, b3_copy, b_r_copy
+            diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data2_z[i], code_data2_z[i]))
+            grad_2 = torch.matmul(W2_copy.t(), diag_sigma_prime2)
+    
+            diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3_z[i], code_data3_z[i]))
+            grad_3 = torch.matmul(W2_copy, diag_sigma_prime3)
+    
+            A_matrix.append(grad_1)
+            B_matrix.append(grad_2)
+            C_matrix.append(grad_3)
+        A_matrix = torch.reshape(torch.cat(A_matrix, 1),[batch_size, grad_1.shape[0], grad_1.shape[1]])
+        B_matrix = torch.reshape(torch.cat(B_matrix, 1),[batch_size, grad_2.shape[0], grad_2.shape[1]])
+        C_matrix = torch.reshape(torch.cat(C_matrix, 1),[batch_size, grad_3.shape[0], grad_3.shape[1]])
+        U, S, VH = torch.svd(W1_copy)
+        for i in range(len(A_matrix)):
+            u, s, vh = svd_drei(A_matrix[i], B_matrix[i], C_matrix[i], U, S, VH.T)
+            b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
+            B.append(b.cpu())
+        B= torch.stack(B)
     
 def calculate_singular_vectors_B(model, train_loader, dM, batch_size):
     grad_output=torch.ones(batch_size).cuda()
