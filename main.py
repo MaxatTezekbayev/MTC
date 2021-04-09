@@ -225,10 +225,8 @@ if args.ALTER:
             Jac = calc_jac(model, code_data)
             Jac_noise = calc_jac(model, code_data_noise)
             Jac_z = calc_jac(model, code_data_z)
-            if epoch==0:
-                loss = torch.mean(torch.sum(torch.pow(Jac_z - b, 2)))
-            else:
-                loss, loss1 = alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, args.lambd, args.gamma)
+            
+            loss, loss1 = alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, args.lambd, args.gamma)
 
             x.requires_grad_(False)
             x_noise.requires_grad_(False)
@@ -238,8 +236,8 @@ if args.ALTER:
             else:
                 loss.backward(retain_graph = True)
             print(alter_step, model.W1.grad.data.abs().mean())
-            # train_loss += loss.item()
-            # MSE_loss += loss1.item()
+            train_loss += loss.item()
+            MSE_loss += loss1.item()
             optimizer.step()
             optimizer.zero_grad()
 
