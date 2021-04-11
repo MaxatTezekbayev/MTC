@@ -72,31 +72,21 @@ def calculate_B_alter(model, train_z_loader, k, batch_size):
     start_time_model = time.time()
     with torch.no_grad():
         for step, (z, _) in enumerate(train_z_loader):
-            U=[]
-            S=[]
-            V=[]
+            Bx_batch = []
             z = z.view(batch_size, -1).cuda()
-            # start_time_model = time.time()
-            _, code_data_z, Jac_z = model(z, calculate_jacobian = True)
-            # time_model.append(time.time() - start_time_model)
-            # start_time_svd = time.time()
-            for i in range(batch_size):
-                
-                u, s, v = torch.svd(Jac_z[i].cpu())
-                U.append(u)
-                S.append(s)
-                V.append(v)
-            U = torch.stack(U)
-            S = torch.stack(S)
-            V = torch.stack(V)
-            # time_svd.append(time.time() - start_time_svd)
-            # start_time_b = time.time()
-            # b = torch.matmul(u[:, :, :k], torch.matmul(torch.diag_embed(s)[:, :k, :k], torch.transpose(v[:, :, :k],1,2)))
-            b = torch.matmul(U[:, :, :k].cuda(), torch.matmul(torch.diag_embed(S)[:, :k, :k].cuda(), torch.transpose(V[:, :, :k],1,2).cuda()))
-            
+            _, code_data_z, A_matrix, B_matrix, C_matrix = model(z, calculate_jacobian = False, calculate_DREI = True)
+            # U, S, V = torch.svd(Jac_z.cpu())
+            # b = torch.matmul(U[:, :, :k].cuda(), torch.matmul(torch.diag_embed(S)[:, :k, :k].cuda(), torch.transpose(V[:, :, :k],1,2).cuda()))
+            U, S, VH = torch.svd(model.W1)
+            for i in range(len(A_matrix)):
+                u, s, vh = svd_drei(A_matrix[i], B_matrix[i], C_matrix[i], U, S, VH.T)
+                b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
+                Bx_batch.append(b.cpu())
+            Bx_batch = torch.stack(Bx_batch)
+            # u, s, vh = svd_drei2(A_matrix[i], B_matrix[i], C_matrix[i], W1_copy)
             # time_b.append(time.time() - start_time_b)
 
-            Bx.append(b.cpu())
+            Bx.append(Bx_batch)
     print('whole time', time.time() - start_time_model)
     # print("time_model", np.mean(time_model), "time_svd", np.mean(time_svd), "time_b", np.mean(time_b) )
     return Bx

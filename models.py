@@ -80,7 +80,7 @@ class ALTER2Layer(nn.Module):
         torch.nn.init.constant_(self.b3, 0.1)
         torch.nn.init.constant_(self.b_r, 0.1)
 
-    def forward(self, x, calculate_jacobian = False):
+    def forward(self, x, calculate_jacobian = False, calculate_DREI = False):
         #encode
         code_data1 = self.sigmoid(torch.matmul(x, self.W1.t()) + self.b1)
         code_data2 = self.sigmoid(torch.matmul(code_data1, self.W2.t()) + self.b2)
@@ -105,6 +105,28 @@ class ALTER2Layer(nn.Module):
             Jac = torch.reshape(torch.cat(Jac,1), [x.shape[0], recover.shape[1], x.shape[1]])
             return recover, code_data2, Jac
 
+        if calculate_DREI:
+            #drei
+            A_matrix = []
+            B_matrix = []
+            C_matrix = []
+            for i in range(x.shape[0]): 
+                diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1[i], code_data1[i]))
+                grad_1 = torch.matmul(W1_copy.t(), diag_sigma_prime1)
+
+                diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data2[i], code_data2[i]))
+                grad_2 = torch.matmul(W2_copy.t(), diag_sigma_prime2)
+        
+                diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3[i], code_data3[i]))
+                grad_3 = torch.matmul(W2_copy, diag_sigma_prime3)
+        
+                A_matrix.append(grad_1)
+                B_matrix.append(grad_2)
+                C_matrix.append(grad_3)
+            A_matrix = torch.reshape(torch.cat(A_matrix, 1),[x.shape[0], grad_1.shape[0], grad_1.shape[1]])
+            B_matrix = torch.reshape(torch.cat(B_matrix, 1),[x.shape[0], grad_2.shape[0], grad_2.shape[1]])
+            C_matrix = torch.reshape(torch.cat(C_matrix, 1),[x.shape[0], grad_3.shape[0], grad_3.shape[1]])
+            return recover, code_data2, A_matrix, B_matrix, C_matrix
         return recover, code_data2
         
         
