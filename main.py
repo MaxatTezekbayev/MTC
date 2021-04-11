@@ -122,7 +122,7 @@ optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 
 
 # train CAE+H (ALTER is below)
-elif args.train_CAEH is True:
+if args.train_CAEH is True:
     writer = SummaryWriter('runs/' + "_".join(map(str, ["caeh", args.code_size, args.code_size2, args.learning_rate, args.lambd, args.gamma, args.epsilon])))
     MSELoss = nn.MSELoss()
     for epoch in range(args.epochs):
