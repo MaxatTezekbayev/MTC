@@ -98,9 +98,9 @@ class ALTER2Layer(nn.Module):
                 grad_2 = torch.matmul(self.W2.t(), diag_sigma_prime2)
                 
                 diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3[i], code_data3[i]))
-                grad_3 = torch.matmul(model.W2, diag_sigma_prime3)
+                grad_3 = torch.matmul(self.W2, diag_sigma_prime3)
 
-                grad_4 = model.W1
+                grad_4 = self.W1
                 Jac.append(torch.matmul(grad_1, torch.matmul(grad_2, torch.matmul(grad_3, grad_4))))
             Jac = torch.reshape(torch.cat(Jac,1), [x.shape[0], recover.shape[1], x.shape[1]])
             return recover, code_data2, Jac
