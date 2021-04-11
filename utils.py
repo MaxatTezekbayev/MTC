@@ -86,7 +86,8 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
 
             _, code_data_z, Jac_z = model(z, calculate_jacobian = True)
             U_batch, S_batch, V_batch = torch.svd(Jac_z.cpu())
-            Bx_batch2 = torch.matmul(U_batch[:, :, :k], torch.matmul(torch.diag_embed(S_batch)[:, :k, :k], torch.transpose(V_batch[:, :, :k],1,2)))
+            Bx_batch2 = torch.matmul(U_batch, torch.matmul(torch.diag_embed(S_batch), torch.transpose(V_batch,1,2)))
+            # Bx_batch2 = torch.matmul(U_batch[:, :, :k], torch.matmul(torch.diag_embed(S_batch)[:, :k, :k], torch.transpose(V_batch[:, :, :k],1,2)))
             
 
             Bx_batch = []
@@ -95,11 +96,13 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
             for i in range(len(A_matrix)):
                 # u, s, vh = svd_drei(A_matrix[i].cpu(), B_matrix[i].cpu(), C_matrix[i].cpu(), U_W4, S_W4, VH_W4.T)
                 u, s, vh = svd_drei(A_matrix[i].cpu(), B_matrix[i].cpu(), C_matrix[i].cpu(), model.W1.clone().cpu())
-                b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
+                # b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
+                b = torch.matmul(u, torch.matmul(torch.diag_embed(s), vh))
                 break
                 # Bx_batch.append(b.cpu())
             # Bx_batch = torch.stack(Bx_batch)
             # else:
+            print("B:", Bx_batch2[0] - b)
             print("U:", u[:, :k]-U_batch[0, :, :k])
             print("S:", torch.diag_embed(s)[:k, :k] - torch.diag_embed(S_batch)[0, :k, :k])
             print("V:", vh[:k, :] - V_batch[0, :, :k].T)
