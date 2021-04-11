@@ -61,7 +61,7 @@ def MTC_loss(pred, y, u, imgs, beta, batch_size):
 def svd_product(A, U, S, VH): # A*U*S*VH
     Q, R = torch.qr(torch.matmul(A, U))
     u_temp, s_temp, vh_temp = torch.svd(torch.matmul(R, torch.diag(S)))
-    return [torch.matmul(Q, u_temp), s_temp, torch.matmul(VH, vh_temp )]
+    return [torch.matmul(Q, u_temp), s_temp, torch.matmul(VH.T, vh_temp )]
 
 def svd_drei(A, B, C, U, S, VH): # A*B*C*U*S*VH
     U1, S1, VH1 = svd_product(C, U, S, VH)
