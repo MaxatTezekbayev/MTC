@@ -59,6 +59,8 @@ parser.add_argument('--alter_steps', type=int, default=1000,
                     help='steps for alternating algorithm ')
 parser.add_argument('--save_dir_for_ALTER', type=str, default=None,
                     help='path for saving weights')
+parser.add_argument('--optimized_SVD', type=bool, default=None,
+                    help='use optimized SVD or not')
 
 
 # MTC
@@ -230,7 +232,7 @@ if args.ALTER:
         writer.add_scalar('ALTER/Loss/test_MSE', (test_loss / test_num_batches), epoch)
         print(epoch, train_loss/num_batches)
         #calculate B
-        B =calculate_B_alter(model, train_z_loader, k, batch_size)
+        B =calculate_B_alter(model, train_z_loader, k, batch_size, args.optimized_SVD)
     #end of training
 
     if args.save_dir_for_ALTER:

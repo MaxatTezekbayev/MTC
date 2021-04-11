@@ -54,41 +54,46 @@ def MTC_loss(pred, y, u, imgs, beta, batch_size):
     return loss, loss1
  
 def svd_product(A, U, S, VH): # A*U*S*VH
-    Q, R = torch.qr(torch.matmul(A, U))
-    u_temp, s_temp, vh_temp = torch.svd(torch.matmul(R, torch.diag(S)))
-    return [torch.matmul(Q, u_temp), s_temp, torch.matmul(vh_temp.T, VH)]
+    Q, R = torch.qr(torch.matmul(A.cuda(), U.cuda()).cpu())
+    u_temp, s_temp, vh_temp = torch.svd(torch.matmul(R.cuda(), torch.diag(S).cuda()).cpu())
+    return [torch.matmul(Q.cuda(), u_temp.cuda()), s_temp.cuda(), torch.matmul(vh_temp.T.cuda(), VH.cuda())]
 
 def svd_drei(A, B, C, U, S, VH): # A*B*C*U*S*VH
     U1, S1, VH1 = svd_product(C, U, S, VH)
     U2, S2, VH2 = svd_product(B, U1, S1, VH1)
     return svd_product(A, U2, S2, VH2)
 
-def calculate_B_alter(model, train_z_loader, k, batch_size):
+def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
     Bx=[]
-    time_model = []
-    time_svd = []
-    time_b = []
+
     
     start_time_model = time.time()
+    encoded_data_size = model.W2.shape[0]
+
     with torch.no_grad():
         for step, (z, _) in enumerate(train_z_loader):
-            Bx_batch = []
+            
             z = z.view(batch_size, -1).cuda()
-            _, code_data_z, A_matrix, B_matrix, C_matrix = model(z, calculate_jacobian = False, calculate_DREI = True)
-            # U, S, V = torch.svd(Jac_z.cpu())
-            # b = torch.matmul(U[:, :, :k].cuda(), torch.matmul(torch.diag_embed(S)[:, :k, :k].cuda(), torch.transpose(V[:, :, :k],1,2).cuda()))
-            U, S, VH = torch.svd(model.W1)
-            for i in range(len(A_matrix)):
-                u, s, vh = svd_drei(A_matrix[i], B_matrix[i], C_matrix[i], U, S, VH.T)
-                b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
-                Bx_batch.append(b.cpu())
+
+            #if encoded data size is less then recover size, use optimized svd
+            # if  encoded_data_size <= z.shape[1]:
+            if optimized_SVD:
+                Bx_batch = []
+                _, code_data_z, A_matrix, B_matrix, C_matrix = model(z, calculate_jacobian = False, calculate_DREI = True)
+                U, S, VH = torch.svd(model.W1)
+                for i in range(len(A_matrix)):
+                    u, s, vh = svd_drei(A_matrix[i], B_matrix[i], C_matrix[i], U, S, VH.T)
+                    b = torch.matmul(u[:, :k].cuda(), torch.matmul(torch.diag_embed(s)[:k, :k].cuda(), vh[:k, :].cuda()))
+                    Bx_batch.append(b.cpu())
+            else:
+                _, code_data_z, A_matrix, B_matrix, C_matrix = model(z, calculate_jacobian = True)
+                U, S, V = torch.svd(Jac_z.cpu())
+                Bx_batch = torch.matmul(U[:, :, :k].cuda(), torch.matmul(torch.diag_embed(S)[:, :k, :k].cuda(), torch.transpose(V[:, :, :k],1,2).cuda()))
+            
             Bx_batch = torch.stack(Bx_batch)
-            # u, s, vh = svd_drei2(A_matrix[i], B_matrix[i], C_matrix[i], W1_copy)
-            # time_b.append(time.time() - start_time_b)
 
             Bx.append(Bx_batch)
     print('whole time', time.time() - start_time_model)
-    # print("time_model", np.mean(time_model), "time_svd", np.mean(time_svd), "time_b", np.mean(time_b) )
     return Bx
     
 def calculate_singular_vectors_B(model, train_loader, dM, batch_size):
