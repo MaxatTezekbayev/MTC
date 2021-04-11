@@ -65,7 +65,7 @@ def svd_product(A, U, S, VH): # A*U*S*VH
 
 def svd_drei(A, B, C, U, S, VH): # A*B*C*U*S*VH
     U1, S1, VH1 = svd_product(C, U, S, VH.T)
-    U2, S2, VH2 = svd_product(B, U1, S1, VH1)
+    U2, S2, VH2 = svd_product(B, U1, S1, VH1.T)
     return svd_product(A, U2, S2, VH2)
 
 def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
