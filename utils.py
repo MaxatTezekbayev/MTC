@@ -68,6 +68,9 @@ def calculate_B_alter(model, train_z_loader, k, batch_size):
     time_model = []
     time_svd = []
     time_b = []
+    U=[]
+    S=[]
+    V=[]
     start_time_model = time.time()
     with torch.no_grad():
         for step, (z, _) in enumerate(train_z_loader):
@@ -75,13 +78,20 @@ def calculate_B_alter(model, train_z_loader, k, batch_size):
             # start_time_model = time.time()
             _, code_data_z, Jac_z = model(z, calculate_jacobian = True)
             # time_model.append(time.time() - start_time_model)
-
-            # start_time_svd = time.time()
-            u, s, v = torch.svd(Jac_z.cpu())
-            # time_svd.append(time.time() - start_time_svd)
-
+            for i in range(batch_size):
+                # start_time_svd = time.time()
+                u, s, v = torch.svd(Jac_z[i].cpu())
+                # time_svd.append(time.time() - start_time_svd)
+                U.append(u)
+                S.append(s)
+                V.append(v)
+            U = torch.stack(U)
+            S = torch.stack(S)
+            V = torch.stack(V)
             # start_time_b = time.time()
-            b = torch.matmul(u[:, :, :k], torch.matmul(torch.diag_embed(s)[:, :k, :k], torch.transpose(v[:, :, :k],1,2)))
+            # b = torch.matmul(u[:, :, :k], torch.matmul(torch.diag_embed(s)[:, :k, :k], torch.transpose(v[:, :, :k],1,2)))
+            b = torch.matmul(U[:, :, :k], torch.matmul(torch.diag_embed(S)[:, :k, :k], torch.transpose(V[:, :, :k],1,2)))
+            
             # time_b.append(time.time() - start_time_b)
 
             Bx.append(b.cpu())
