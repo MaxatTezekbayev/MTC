@@ -85,8 +85,8 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
             # if optimized_SVD:
 
             _, code_data_z, Jac_z = model(z, calculate_jacobian = True)
-            U_batch, S_batch, V_batch = torch.svd(Jac_z.cpu())
-            Bx_batch2 = torch.matmul(U_batch, torch.matmul(torch.diag_embed(S_batch), torch.transpose(V_batch,1,2)))
+            U_batch, S_batch, V_batch = torch.svd(Jac_z[0].cpu())
+            Bx_batch2 = torch.matmul(U_batch, torch.matmul(torch.diag_embed(S_batch), torch.transpose(V_batch,0,1)))
             # Bx_batch2 = torch.matmul(U_batch[:, :, :k], torch.matmul(torch.diag_embed(S_batch)[:, :k, :k], torch.transpose(V_batch[:, :, :k],1,2)))
             
 
