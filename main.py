@@ -19,23 +19,14 @@ parser = argparse.ArgumentParser(description='Implementation of Manifold Tangent
 
 
 parser.add_argument('--dataset', type=str, default="MNIST")
-
-parser.add_argument('--ALTER', type=bool, default=False,
-                    help='Train alternating algorithm')
-
-parser.add_argument('--CAEH', type=bool, default=False,
-                    help='Train CAE+H')
-
+parser.add_argument('--ALTER', type=bool, default=False, help='Train alternating algorithm')
+parser.add_argument('--CAEH', type=bool, default=False, help='Train CAE+H')
 parser.add_argument('--learning_rate', type=float, default=0.001)
 parser.add_argument('--batch_size', type=int, default=100)
 parser.add_argument('--lambd', type=float, default=0.0)
-parser.add_argument('--gamma', type=float, default=0.01,
-                    help='gamma')
-
-parser.add_argument('--code_size', type=int, default=120,
-                    help='dimension of hidden layer')
-parser.add_argument('--code_size2', type=int, default=60,
-                    help='dimension of hidden layer')
+parser.add_argument('--gamma', type=float, default=0.01, help='gamma')
+parser.add_argument('--code_size', type=int, default=120, help='dimension of hidden layer')
+parser.add_argument('--code_size2', type=int, default=60, help='dimension of hidden layer')
 
 parser.add_argument('--epsilon', type=float, default=0.1,
                     help='std for random noise')
@@ -46,7 +37,7 @@ parser.add_argument('--epochs', type=int, default=100,
 parser.add_argument('--numlayers', type=int, default=2,
                     help='layers of CAE+H (1 or 2)')
 
-parser.add_argument('--save_dir_for_CAE', type=str, default=None,
+parser.add_argument('--save_dir_for_CAEH', type=str, default=None,
                     help='path for saving weights')
 
 parser.add_argument('--pretrained_CAEH', type=str, default=None,
@@ -82,7 +73,6 @@ parser.add_argument('--MTC_lr', type=float, default=0.001)
 
 args = parser.parse_args()
 
-
 batch_size = args.batch_size
 k = args.k
 
@@ -109,26 +99,27 @@ num_batches = len(train_dataset) // batch_size
 test_num_batches = len(test_dataset) // batch_size
 
 
-if args.CAEH:
-    if args.numlayers == 2:
+if args.numlayers == 2:
+    if args.CAEH:
         model = CAE2Layer(dimensionality, [args.code_size, args.code_size2])
-    else:
-        raise Exception("Sorry, numlayers only 2")
+        if args.pretrained_CAEH and args.train_CAEH:
+            raise Exception("Select only one: pretrained_CAEH or train_CAEH")
+        if args.pretrained_CAEH:
+            model.load_state_dict(torch.load(args.pretrained_CAEH))
 
-elif args.ALTER:
-    if args.numlayers == 2:
+    elif args.ALTER:
         model = ALTER2Layer(dimensionality, [args.code_size, args.code_size2])
-    else:
-        raise Exception("Sorry, numlayers only 2")
+else:
+    raise Exception("Sorry, number of layers only 2")
+
+
+
+
+
 
 model.cuda()
 optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 
-if args.pretrained_CAEH and args.train_CAEH:
-    raise Exception("Select only one: pretrained_CAEH or train_CAEH")
-
-if args.pretrained_CAEH:
-    model.load_state_dict(torch.load(args.pretrained_CAEH))
 
 # train CAE+H (ALTER is below)
 elif args.train_CAEH is True:
@@ -143,12 +134,13 @@ elif args.train_CAEH is True:
             x.requires_grad_(True)
             x_noise = torch.autograd.Variable(x.data + torch.normal(0, args.epsilon, size=[batch_size, dimensionality]).cuda(), requires_grad=True)
 
-            recover, code_data, code_data_noise, Jac = model(x, calculate_jacobian=True)
-            loss, loss1 = cae_h_loss(imgs, imgs_noise, recover, code_data,
+            recover, code_data, Jac = model(x, calculate_jacobian=True)
+            _, code_data_noise, Jac_noise = model(x_noise, calculate_jacobian=True)
+            loss, loss1 = cae_h_loss(x, x_noise, recover, code_data,
                                      code_data_noise, args.lambd, args.gamma, batch_size)
 
-            imgs.requires_grad_(False)
-            imgs_noise.requires_grad_(False)
+            x.requires_grad_(False)
+            x_noise.requires_grad_(False)
 
             loss.backward()
 
@@ -158,22 +150,20 @@ elif args.train_CAEH is True:
             optimizer.zero_grad()
 
         with torch.no_grad():
-            for test_imgs, _ in test_loader:
-                test_imgs = test_imgs.view(batch_size, -1).cuda()
-                test_recover, _ = model(test_imgs)
-                test_loss += MSELoss(test_recover, test_imgs).item()
+            for test_x, _ in test_loader:
+                test_x = test_x.view(batch_size, -1).cuda()
+                test_recover, _ = model(test_x)
+                test_loss += MSELoss(test_recover, test_x).item()
 
         writer.add_scalar('CAEH/Loss/train', (train_loss / num_batches), epoch)
-        writer.add_scalar('CAEH/Loss/train_MSE',
-                          (MSE_loss / num_batches), epoch)
-        writer.add_scalar('CAEH/Loss/test_MSE',
-                          (test_loss / test_num_batches), epoch)
+        writer.add_scalar('CAEH/Loss/train_MSE', (MSE_loss / num_batches), epoch)
+        writer.add_scalar('CAEH/Loss/test_MSE', (test_loss / test_num_batches), epoch)
 
         if epoch % 5 == 0:
             print(epoch, train_loss/num_batches)
 
-    if args.save_dir_for_CAE:
-        torch.save(model.state_dict(), args.save_dir_for_CAE)
+    if args.save_dir_for_CAEH:
+        torch.save(model.state_dict(), args.save_dir_for_CAEH)
 
 
 
@@ -181,17 +171,14 @@ elif args.train_CAEH is True:
 if args.ALTER:
     writer = SummaryWriter('runs/' + "_".join(map(str, ["alter", args.code_size, args.code_size2, args.learning_rate, args.lambd, args.gamma, args.epsilon])))
     MSELoss = nn.MSELoss()
-
+    #initialize B with 0-s
     B = torch.zeros((len(train_z_loader),1))
-
     train_x_iterator = iter(train_loader)
-    last_step = args.alter_steps-1
+    z_b_iter = iter(zip(train_z_loader,B))
     for epoch in range(args.epochs):
         train_loss = 0
         test_loss = 0
         MSE_loss = 0
-        B_iter = iter(B)
-        train_z_iterator = iter(train_z_loader)
         for alter_step in tqdm(range(args.alter_steps)):     
             #to always get some batch of x
             try:
@@ -202,13 +189,10 @@ if args.ALTER:
 
             #to always get some batch of z, b
             try:
-                z = next(train_z_iterator)[0]
-                b = next(B_iter)
+                (z, _), b = next(z_b_iter)
             except StopIteration:
-                train_z_iterator = iter(train_z_loader)
-                B_iter = iter(B)
-                z = next(train_z_iterator)[0]
-                b = next(B_iter)
+                z_b_iter = iter(zip(train_z_loader,B))
+                (z, _), b = next(z_b_iter)
 
             x = x.view(batch_size, -1).cuda()
             z = z.view(batch_size, -1).cuda()
@@ -218,26 +202,21 @@ if args.ALTER:
             z.requires_grad_(True)
             x_noise = torch.autograd.Variable(x.data + torch.normal(0, args.epsilon, size=[batch_size, dimensionality]).cuda(), requires_grad=True)
 
-            recover, code_data = model(x)
-            _, code_data_noise = model(x_noise)
-            _, code_data_z = model(z)
-            
-            Jac = calc_jac(model, code_data)
-            Jac_noise = calc_jac(model, code_data_noise)
-            Jac_z = calc_jac(model, code_data_z)
+            recover, code_data, Jac = model(x, calculate_jacobian = True)
+            _, code_data_noise, Jac_noise = model(x_noise, calculate_jacobian = True)
+            _, code_data_z, Jac_z = model(z, calculate_jacobian = True)
 
             loss, loss1 = alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, args.lambd, args.gamma)
 
             x.requires_grad_(False)
             x_noise.requires_grad_(False)
             z.requires_grad_(False)
-            if alter_step == last_step:
-                loss.backward()
-            else:
-                loss.backward(retain_graph = True)
+            
+            loss.backward()
 
             train_loss += loss.item()
             MSE_loss += loss1.item()
+            
             optimizer.step()
             optimizer.zero_grad()
 
