@@ -64,7 +64,7 @@ def svd_product(A, U, S, VH): # A*U*S*VH
     return [torch.matmul(Q, u_temp), s_temp, torch.matmul(vh_temp.T, VH)]
 
 def svd_drei(A, B, C, U, S, VH): # A*B*C*U*S*VH
-    U1, S1, VH1 = svd_product(C, U, S, VH)
+    U1, S1, VH1 = svd_product(C, U, S, VH.T)
     U2, S2, VH2 = svd_product(B, U1, S1, VH1)
     return svd_product(A, U2, S2, VH2)
 
@@ -86,7 +86,6 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
             Bx_batch = []
             _, code_data_z, A_matrix, B_matrix, C_matrix = model(z, calculate_jacobian = False, calculate_DREI = True)
             U, S, VH = torch.svd(model.W1.clone().cpu())
-            VH = VH.T
             for i in range(len(A_matrix)):
                 u, s, vh = svd_drei(A_matrix[i].cpu(), B_matrix[i].cpu(), C_matrix[i].cpu(), U, S, VH)
                 b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
@@ -95,8 +94,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
             # else:
             _, code_data_z, Jac_z = model(z, calculate_jacobian = True)
             U, S, V = torch.svd(Jac_z.cpu())
-            V = V.T
-            Bx_batch2 = torch.matmul(U[:, :, :k], torch.matmul(torch.diag_embed(S)[:, :k, :k], V[:, :k,:]))
+            Bx_batch2 = torch.matmul(U[:, :, :k], torch.matmul(torch.diag_embed(S)[:, :k, :k], torch.transpose(V[:, :, :k],1,2)))
             print(Bx_batch.shape)
             print(Bx_batch2.shape)
             print(Bx_batch-Bx_batch2)
