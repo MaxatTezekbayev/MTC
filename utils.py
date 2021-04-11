@@ -85,7 +85,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size):
             # time_b.append(time.time() - start_time_b)
 
             Bx.append(b.cpu())
-    print('whole time', time.time() - start_time_b)
+    print('whole time', time.time() - start_time_model)
     # print("time_model", np.mean(time_model), "time_svd", np.mean(time_svd), "time_b", np.mean(time_b) )
     return Bx
     
