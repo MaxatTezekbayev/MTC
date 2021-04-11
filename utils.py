@@ -60,64 +60,37 @@ def MTC_loss(pred, y, u, imgs, beta, batch_size):
 
 def svd_product(A, U, S, VH): # A*U*S*VH
     Q, R = torch.qr(torch.matmul(A, U))
-    u_temp, s_temp, vh_temp = torch.svd(torch.matmul(R, torch.diag(S)))
+    u_temp, s_temp, vh_temp = torch.svd(torch.matmul(R, torch.diag(S))) 
     return [torch.matmul(Q, u_temp), s_temp, torch.matmul(vh_temp.T, VH)]
 
-def svd_drei(A, B, C, D): # A*B*C*D
-    U_temp, S_temp, VH_temp = torch.svd(torch.matmul(C, D))
-    return svd_product(torch.matmul(A, B), U_temp, S_temp, VH_temp.T)
-
+def svd_drei(A, B, C, U, S, VH): # A*B*C*U*S*VH
+    U1, S1, VH1 = svd_product(C, U, S, VH)
+    U2, S2, VH2 = svd_product(B, U1, S1, VH1)
+    return svd_product(A, U2, S2, VH2)
 
 def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
-    Bx=[]
-    Bx2=[]
-    
+    Bx=[]  
     start_time_model = time.time()
-    encoded_data_size = model.W2.shape[0]
 
     with torch.no_grad():
         for step, (z, _) in enumerate(train_z_loader):
-            
             z = z.view(batch_size, -1).cuda()
 
-            #if encoded data size is less then recover size, use optimized svd
-            # if  encoded_data_size <= z.shape[1]:
-            # if optimized_SVD:
+            if optimized_SVD:
+                Bx_batch = []
+                _, code_data_z, A_matrix, B_matrix, C_matrix = model(z, calculate_jacobian = False, calculate_DREI = True)
+                U, S, VH = torch.svd(model.W1.clone().cpu())
+                for i in range(len(A_matrix)):
+                    u, s, vh = svd_drei(A_matrix[i].cpu(), B_matrix[i].cpu(), C_matrix[i].cpu(), U, S, VH.T)
+                    b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
+                    Bx_batch.append(b.cpu())
+                Bx_batch = torch.stack(Bx_batch)
+            else:
+                _, code_data_z, Jac_z = model(z, calculate_jacobian = True)
+                U, S, V = torch.svd(Jac_z.cpu())
+                Bx_batch = torch.matmul(U[:, :, :k], torch.matmul(torch.diag_embed(S)[:, :k, :k], torch.transpose(V[:, :, :k],1,2)))
 
-            _, code_data_z, Jac_z = model(z, calculate_jacobian = True)
-            U_batch, S_batch, V_batch = torch.svd(Jac_z[0].cpu())
-            Bx_batch2 = torch.matmul(U_batch, torch.matmul(torch.diag_embed(S_batch), torch.transpose(V_batch,0,1)))
-            # Bx_batch2 = torch.matmul(U_batch[:, :, :k], torch.matmul(torch.diag_embed(S_batch)[:, :k, :k], torch.transpose(V_batch[:, :, :k],1,2)))
-            
-
-            Bx_batch = []
-            _, code_data_z, A_matrix, B_matrix, C_matrix = model(z, calculate_jacobian = False, calculate_DREI = True)
-            # U_W4, S_W4, VH_W4 = torch.svd(model.W1.clone().cpu())
-            for i in range(len(A_matrix)):
-                # u, s, vh = svd_drei(A_matrix[i].cpu(), B_matrix[i].cpu(), C_matrix[i].cpu(), U_W4, S_W4, VH_W4.T)
-                u, s, vh = svd_drei(A_matrix[i].cpu(), B_matrix[i].cpu(), C_matrix[i].cpu(), model.W1.clone().cpu())
-                # b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
-                b = torch.matmul(u, torch.matmul(torch.diag_embed(s), vh))
-                break
-                # Bx_batch.append(b.cpu())
-            # Bx_batch = torch.stack(Bx_batch)
-            # else:
-            print("B:", Bx_batch2[0] - b)
-            print("U:", u[:, :k]-U_batch[0, :, :k])
-            print("S:", torch.diag_embed(s)[:k, :k] - torch.diag_embed(S_batch)[0, :k, :k])
-            print("V:", vh[:k, :] - V_batch[0, :, :k].T)
-
-            # print(Bx_batch.shape)
-            # print(Bx_batch2.shape)
-            # print(Bx_batch-Bx_batch2)
-            break
             Bx.append(Bx_batch)
-            Bx2.append(Bx_batch2)
-        Bx = torch.stack(Bx)
-        Bx2 = torch.stack(Bx2)
-        # print(Bx.shape)
-        # print(Bx2.shape)
-        # print(Bx-Bx2)
     print('whole time', time.time() - start_time_model)
     return Bx
     
