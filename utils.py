@@ -68,12 +68,13 @@ def calculate_B_alter(model, train_z_loader, k, batch_size):
     time_model = []
     time_svd = []
     time_b = []
-    U=[]
-    S=[]
-    V=[]
+    
     start_time_model = time.time()
     with torch.no_grad():
         for step, (z, _) in enumerate(train_z_loader):
+            U=[]
+            S=[]
+            V=[]
             z = z.view(batch_size, -1).cuda()
             # start_time_model = time.time()
             _, code_data_z, Jac_z = model(z, calculate_jacobian = True)
