@@ -65,7 +65,7 @@ def svd_drei(A, B, C, U, S, VH): # A*B*C*U*S*VH
 
 def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
     Bx=[]
-
+    Bx2=[]
     
     start_time_model = time.time()
     encoded_data_size = model.W2.shape[0]
@@ -77,21 +77,25 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
 
             #if encoded data size is less then recover size, use optimized svd
             # if  encoded_data_size <= z.shape[1]:
-            if optimized_SVD:
-                Bx_batch = []
-                _, code_data_z, A_matrix, B_matrix, C_matrix = model(z, calculate_jacobian = False, calculate_DREI = True)
-                U, S, VH = torch.svd(model.W1)
-                for i in range(len(A_matrix)):
-                    u, s, vh = svd_drei(A_matrix[i], B_matrix[i], C_matrix[i], U, S, VH.T)
-                    b = torch.matmul(u[:, :k].cuda(), torch.matmul(torch.diag_embed(s)[:k, :k].cuda(), vh[:k, :].cuda()))
-                    Bx_batch.append(b.cpu())
-                Bx_batch = torch.stack(Bx_batch)
-            else:
-                _, code_data_z, Jac_z = model(z, calculate_jacobian = True)
-                U, S, V = torch.svd(Jac_z.cpu())
-                Bx_batch = torch.matmul(U[:, :, :k].cuda(), torch.matmul(torch.diag_embed(S)[:, :k, :k].cuda(), torch.transpose(V[:, :, :k],1,2).cuda())).cpu()
+            # if optimized_SVD:
+            Bx_batch = []
+            _, code_data_z, A_matrix, B_matrix, C_matrix = model(z, calculate_jacobian = False, calculate_DREI = True)
+            U, S, VH = torch.svd(model.W1)
+            for i in range(len(A_matrix)):
+                u, s, vh = svd_drei(A_matrix[i], B_matrix[i], C_matrix[i], U, S, VH.T)
+                b = torch.matmul(u[:, :k].cuda(), torch.matmul(torch.diag_embed(s)[:k, :k].cuda(), vh[:k, :].cuda()))
+                Bx_batch.append(b.cpu())
+            Bx_batch = torch.stack(Bx_batch)
+            # else:
+            _, code_data_z, Jac_z = model(z, calculate_jacobian = True)
+            U, S, V = torch.svd(Jac_z.cpu())
+            Bx_batch2 = torch.matmul(U[:, :, :k].cuda(), torch.matmul(torch.diag_embed(S)[:, :k, :k].cuda(), torch.transpose(V[:, :, :k],1,2).cuda())).cpu()
             
             Bx.append(Bx_batch)
+            Bx2.append(Bx_batch2)
+        Bx = torch.stack(Bx)
+        Bx2 = torch.stack(Bx2)
+        print(torch.isclose(Bx, Bx2))
     print('whole time', time.time() - start_time_model)
     return Bx
     
