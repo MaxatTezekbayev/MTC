@@ -22,17 +22,17 @@ parser.add_argument('--dataset', type=str, default="MNIST")
 parser.add_argument('--ALTER', type=bool, default=False, help='Train alternating algorithm')
 parser.add_argument('--CAEH', type=bool, default=False, help='Train CAE+H')
 parser.add_argument('--learning_rate', type=float, default=0.001)
-parser.add_argument('--batch_size', type=int, default=100)
+parser.add_argument('--batch_size', type=int, default=20)
 parser.add_argument('--lambd', type=float, default=0.0)
 parser.add_argument('--gamma', type=float, default=0.01, help='gamma')
-parser.add_argument('--code_size', type=int, default=120, help='dimension of hidden layer')
-parser.add_argument('--code_size2', type=int, default=60, help='dimension of hidden layer')
+parser.add_argument('--code_size', type=int, default=120, help='dimension of 1st hidden layer')
+parser.add_argument('--code_size2', type=int, default=60, help='dimension of 2nd hidden layer')
 
 parser.add_argument('--epsilon', type=float, default=0.1,
                     help='std for random noise')
 
 parser.add_argument('--epochs', type=int, default=100,
-                    help='upper epoch limit')
+                    help='max epoch')
 
 parser.add_argument('--numlayers', type=int, default=2,
                     help='layers of CAE+H (1 or 2)')
@@ -328,9 +328,6 @@ if args.KNN:
     for W, b in weights:
         train_images = sigmoid(np.matmul(train_images, W.T) + b)
         test_images = sigmoid(np.matmul(test_images, W.T) + b)
-
-    # del model
-    # torch.cuda.empty_cache()
 
     # Predicting and printing the accuracy
 

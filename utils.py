@@ -97,23 +97,16 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
 def calculate_singular_vectors_B(model, train_loader, dM, batch_size):
     grad_output=torch.ones(batch_size).cuda()
     U=[]
-    for step, (imgs, _) in enumerate(train_loader):
-        imgs = imgs.view(batch_size, -1).cuda()
-        imgs.requires_grad_(True)
-        recover, code_data= model(imgs)
-        Jx=[]                                                                                        
-        for i in range(code_data.shape[1]):
-            Jx.append(torch.autograd.grad(outputs=code_data[:,i], inputs=imgs, grad_outputs=grad_output, retain_graph=True)[0])
-        Jx=torch.reshape(torch.cat(Jx,1),[batch_size, code_data.shape[1], imgs.shape[1]])
-        u, _, _ = torch.svd(torch.transpose(Jx, 1, 2))
-        u=u[:,:,:dM].cpu()
-        
-        U.append(u)
-        if step%100 == 0:
-            print("calculating U:", step)
-    U = torch.stack(U)
-    del Jx
-    del u
+    with torch.no_grad():
+        for step, (x, _) in enumerate(train_loader):
+            x = x.view(batch_size, -1).cuda()
+            x.requires_grad_(True)
+            recover, code_data, Jac = model(x, calculate_jacobian = True)
+            u, _, _ = torch.svd(torch.transpose(Jac.cpu(), 1, 2))
+            U.append(u[:,:,:dM])
+            if step%100 == 0:
+                print("calculating U:", step)
+        # U = torch.stack(U)
     return U
 
 
