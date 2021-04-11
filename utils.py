@@ -65,15 +65,26 @@ def svd_drei(A, B, C, U, S, VH): # A*B*C*U*S*VH
 
 def calculate_B_alter(model, train_z_loader, k, batch_size):
     Bx=[]
-    start_time = time.time()
+    time_model = []
+    time_svd = []
+    time_b = []
     with torch.no_grad():
         for step, (z, _) in enumerate(train_z_loader):
             z = z.view(batch_size, -1).cuda()
+            start_time_model = time.time()
             _, code_data_z, Jac_z = model(z, calculate_jacobian = True)
-            u, s, v = torch.linalg.svd(Jac_z.cpu())
+            time_model.append(time.time() - start_time_model)
+
+            start_time_svd = time.time()
+            u, s, v = torch.svd(Jac_z.cpu())
+            time_svd.append(time.time() - start_time_svd)
+
+            start_time_b = time.time()
             b = torch.matmul(u[:, :, :k].cuda(), torch.matmul(torch.diag_embed(s)[:, :k, :k].cuda(), torch.transpose(v[:, :, :k],1,2).cuda()))
+            time_b.append(time.time() - start_time_b)
+
             Bx.append(b.cpu())
-    print("B time:", time.time() - start_time)
+    print("time_model", np.mean(time_model), "time_svd", np.mean(time_svd), "time_b", np.mean(time_b) )
     return Bx
     
 def calculate_singular_vectors_B(model, train_loader, dM, batch_size):
