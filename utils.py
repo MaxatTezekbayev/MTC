@@ -76,7 +76,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size):
             time_model.append(time.time() - start_time_model)
 
             start_time_svd = time.time()
-            u, s, v = np.svd(Jac_z.cpu())
+            u, s, v = np.linalg.svd(Jac_z.cpu())
             time_svd.append(time.time() - start_time_svd)
 
             start_time_b = time.time()
