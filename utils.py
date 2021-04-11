@@ -80,7 +80,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
             # if optimized_SVD:
             Bx_batch = []
             _, code_data_z, A_matrix, B_matrix, C_matrix = model(z, calculate_jacobian = False, calculate_DREI = True)
-            U, S, VH = torch.svd(model.W1)
+            U, S, VH = torch.svd(model.W1.clone().cpu())
             for i in range(len(A_matrix)):
                 u, s, vh = svd_drei(A_matrix[i], B_matrix[i], C_matrix[i], U, S, VH.T)
                 b = torch.matmul(u[:, :k].cuda(), torch.matmul(torch.diag_embed(s)[:k, :k].cuda(), vh[:k, :].cuda()))
