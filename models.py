@@ -112,13 +112,13 @@ class ALTER2Layer(nn.Module):
             C_matrix = []
             for i in range(x.shape[0]): 
                 diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1[i], code_data1[i]))
-                grad_1 = torch.matmul(W1_copy.t(), diag_sigma_prime1)
+                grad_1 = torch.matmul(self.W1.t(), diag_sigma_prime1)
 
                 diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data2[i], code_data2[i]))
-                grad_2 = torch.matmul(W2_copy.t(), diag_sigma_prime2)
+                grad_2 = torch.matmul(self.W2.t(), diag_sigma_prime2)
         
                 diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3[i], code_data3[i]))
-                grad_3 = torch.matmul(W2_copy, diag_sigma_prime3)
+                grad_3 = torch.matmul(self.W2, diag_sigma_prime3)
         
                 A_matrix.append(grad_1)
                 B_matrix.append(grad_2)
