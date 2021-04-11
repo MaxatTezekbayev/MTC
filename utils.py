@@ -72,7 +72,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size):
             _, code_data_z, Jac_z = model(z, calculate_jacobian = True)
             u, s, v = torch.svd(Jac_z.cpu())
             b = torch.matmul(u[:, :, :k].cuda(), torch.matmul(torch.diag_embed(s)[:, :k, :k].cuda(), torch.transpose(v[:, :, :k],1,2).cuda()))
-            Bx.append(b)
+            Bx.append(b.cpu())
     print("B time:", time.time() - start_time)
     return Bx
     
