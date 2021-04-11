@@ -68,23 +68,25 @@ def calculate_B_alter(model, train_z_loader, k, batch_size):
     time_model = []
     time_svd = []
     time_b = []
+    start_time_model = time.time()
     with torch.no_grad():
         for step, (z, _) in enumerate(train_z_loader):
             z = z.view(batch_size, -1).cuda()
-            start_time_model = time.time()
+            # start_time_model = time.time()
             _, code_data_z, Jac_z = model(z, calculate_jacobian = True)
-            time_model.append(time.time() - start_time_model)
+            # time_model.append(time.time() - start_time_model)
 
-            start_time_svd = time.time()
+            # start_time_svd = time.time()
             u, s, v = torch.svd(Jac_z.cpu())
-            time_svd.append(time.time() - start_time_svd)
+            # time_svd.append(time.time() - start_time_svd)
 
-            start_time_b = time.time()
+            # start_time_b = time.time()
             b = torch.matmul(u[:, :, :k], torch.matmul(torch.diag_embed(s)[:, :k, :k], torch.transpose(v[:, :, :k],1,2)))
-            time_b.append(time.time() - start_time_b)
+            # time_b.append(time.time() - start_time_b)
 
             Bx.append(b.cpu())
-    print("time_model", np.mean(time_model), "time_svd", np.mean(time_svd), "time_b", np.mean(time_b) )
+    print('whole time', time.time() - start_time_b)
+    # print("time_model", np.mean(time_model), "time_svd", np.mean(time_svd), "time_b", np.mean(time_b) )
     return Bx
     
 def calculate_singular_vectors_B(model, train_loader, dM, batch_size):
