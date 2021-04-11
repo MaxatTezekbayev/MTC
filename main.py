@@ -101,7 +101,7 @@ test_num_batches = len(test_dataset) // batch_size
 
 
 if args.numlayers == 2:
-    if args.CAEH:
+    if args.pretrained_CAEH or args.train_CAEH:
         model = CAE2Layer(dimensionality, [args.code_size, args.code_size2])
         if args.pretrained_CAEH and args.train_CAEH:
             raise Exception("Select only one: pretrained_CAEH or train_CAEH")
