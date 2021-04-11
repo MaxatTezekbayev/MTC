@@ -101,7 +101,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
             # else:
             print("U:", u[:, :k]-U_batch[0, :, :k])
             print("S:", torch.diag_embed(s)[:k, :k] - torch.diag_embed(S_batch)[0, :k, :k])
-            print("V:", vh[:k, :] - torch.transpose(V_batch[0, :, :k],1,2))
+            print("V:", vh[:k, :] - V_batch[0, :, :k].T)
 
             # print(Bx_batch.shape)
             # print(Bx_batch2.shape)
