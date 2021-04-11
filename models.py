@@ -90,7 +90,7 @@ class ALTER2Layer(nn.Module):
 
         if calculate_jacobian:
             Jac = []
-            for i in range(batch_size): 
+            for i in range(x.shape[0]): 
                 diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1[i], code_data1[i]))
                 grad_1 = torch.matmul(self.W1.t(), diag_sigma_prime1)
     
@@ -102,7 +102,7 @@ class ALTER2Layer(nn.Module):
 
                 grad_4 = model.W1
                 Jac.append(torch.matmul(grad_1, torch.matmul(grad_2, torch.matmul(grad_3, grad_4))))
-            Jac = torch.reshape(torch.cat(Jac,1), [batch_size, recover.shape[1], x.shape[1]])
+            Jac = torch.reshape(torch.cat(Jac,1), [x.shape[0], recover.shape[1], x.shape[1]])
             return recover, code_data2, Jac
 
         return recover, code_data2
