@@ -99,7 +99,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
                 # Bx_batch.append(b.cpu())
             # Bx_batch = torch.stack(Bx_batch)
             # else:
-            print("U:", u-U_batch[0, :, :k])
+            print("U:", u[:, :k]-U_batch[0, :, :k])
             print("S:", torch.diag_embed(s)[:k, :k] - torch.diag_embed(S_batch)[0, :k, :k])
             print("V:", vh[:k, :] - torch.transpose(V_batch[0, :, :k],1,2))
 
