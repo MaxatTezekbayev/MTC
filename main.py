@@ -85,7 +85,7 @@ if args.dataset == "MNIST":
     train_dataset = datasets.MNIST('data', train=True, download=True, transform=transforms.ToTensor())
     # train_dataset = torch.utils.data.Subset(train_dataset, range(0, 700))
     test_dataset = datasets.MNIST('data', train=False, download=True, transform=transforms.ToTensor())
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)[:500]
+    train_loader = torch.utils.data.DataLoader(train_dataset[:5000], batch_size=batch_size)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size)
     if args.ALTER:
         # add z
