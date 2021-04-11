@@ -80,7 +80,9 @@ def calculate_B_alter(model, train_z_loader, k, batch_size):
             time_svd.append(time.time() - start_time_svd)
 
             start_time_b = time.time()
-            b = torch.matmul(u[:, :, :k], torch.matmul(torch.diag_embed(s)[:, :k, :k], torch.transpose(v[:, :, :k],1,2)))
+            # b = torch.matmul(u[:, :, :k], torch.matmul(torch.diag_embed(s)[:, :k, :k], torch.transpose(v[:, :, :k],1,2)))
+            b = torch.matmul(torch.from_numpy(u[:, :, :k]).cuda(), torch.matmul(torch.diag_embed(torch.from_numpy(s))[:, :k, :k].cuda(), torch.transpose(torch.from_numpy(v[:, :, :k]).cuda(),1,2)))
+            
             time_b.append(time.time() - start_time_b)
 
             Bx.append(b.cpu())
