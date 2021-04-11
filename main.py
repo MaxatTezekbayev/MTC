@@ -101,7 +101,7 @@ test_num_batches = len(test_dataset) // batch_size
 
 
 if args.numlayers == 2:
-    if args.pretrained_CAEH or args.train_CAEH:
+    if args.CAEH:
         model = CAE2Layer(dimensionality, [args.code_size, args.code_size2])
         if args.pretrained_CAEH and args.train_CAEH:
             raise Exception("Select only one: pretrained_CAEH or train_CAEH")
@@ -160,8 +160,7 @@ if args.train_CAEH is True:
         writer.add_scalar('CAEH/Loss/train_MSE', (MSE_loss / num_batches), epoch)
         writer.add_scalar('CAEH/Loss/test_MSE', (test_loss / test_num_batches), epoch)
 
-        if epoch % 5 == 0:
-            print(epoch, train_loss/num_batches)
+        print(epoch, train_loss/num_batches)
 
     if args.save_dir_for_CAEH:
         torch.save(model.state_dict(), args.save_dir_for_CAEH)
