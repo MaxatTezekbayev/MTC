@@ -63,10 +63,10 @@ def svd_product(A, U, S, VH): # A*U*S*VH
     u_temp, s_temp, vh_temp = torch.svd(torch.matmul(R, torch.diag(S)))
     return [torch.matmul(Q, u_temp), s_temp, torch.matmul(vh_temp.T, VH)]
 
-def svd_drei(A, B, C, U, S, VH): # A*B*C*U*S*VH
-    U1, S1, VH1 = svd_product(C, U, S, VH)
-    U2, S2, VH2 = svd_product(B, U1, S1, VH1)
-    return svd_product(A, U2, S2, VH2)
+def svd_drei(A, B, C, D): # A*B*C*D
+    U_temp, S_temp, VH_temp = torch.svd(torch.matmul(C, D))
+    return svd_product(torch.matmul(A, B), U_temp, S_temp, VH_temp.T)
+
 
 def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
     Bx=[]
@@ -91,9 +91,10 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
 
             Bx_batch = []
             _, code_data_z, A_matrix, B_matrix, C_matrix = model(z, calculate_jacobian = False, calculate_DREI = True)
-            U_W4, S_W4, VH_W4 = torch.svd(model.W1.clone().cpu())
+            # U_W4, S_W4, VH_W4 = torch.svd(model.W1.clone().cpu())
             for i in range(len(A_matrix)):
-                u, s, vh = svd_drei(A_matrix[i].cpu(), B_matrix[i].cpu(), C_matrix[i].cpu(), U_W4, S_W4, VH_W4.T)
+                # u, s, vh = svd_drei(A_matrix[i].cpu(), B_matrix[i].cpu(), C_matrix[i].cpu(), U_W4, S_W4, VH_W4.T)
+                u, s, vh = svd_drei(A_matrix[i].cpu(), B_matrix[i].cpu(), C_matrix[i].cpu(), model.W1.clone().cpu())
                 b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
                 break
                 # Bx_batch.append(b.cpu())
