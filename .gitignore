@@ -11,7 +11,6 @@ __pycache__/
 
 saved_weights/
 results/
-data/
 runs/
 *.pth
 
