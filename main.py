@@ -70,7 +70,7 @@ parser.add_argument('--dM', type=int, default=15,
                     help='number of leading singular vectors')
 
 parser.add_argument('--beta', type=float, default=0.1)
-parser.add_argument('--MTC_epochs', type=float, default=50)
+parser.add_argument('--MTC_epochs', type=int, default=50)
 parser.add_argument('--MTC_lr', type=float, default=0.001)
 
 args = parser.parse_args()
