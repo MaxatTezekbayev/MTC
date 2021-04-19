@@ -67,14 +67,17 @@ class ALTER2Layer(nn.Module):
         self.b1 = nn.Parameter(torch.Tensor(code_sizes[0]))
         self.W2 = nn.Parameter(torch.Tensor(code_sizes[1], code_sizes[0]))
         self.b2 = nn.Parameter(torch.Tensor(code_sizes[1]))
+        self.W3 = nn.Parameter(torch.Tensor(code_sizes[0], code_sizes[1]))
         self.b3 = nn.Parameter(torch.Tensor(code_sizes[0]))
+        self.W4 = nn.Parameter(torch.Tensor(dimensionality, code_sizes[0]))
         self.b_r = nn.Parameter(torch.Tensor(dimensionality))
 
         self.sigmoid = torch.nn.Sigmoid()
         # init
         torch.nn.init.normal_(self.W1, mean=0.0, std=1.0)
         torch.nn.init.normal_(self.W2, mean=0.0, std=1.0)
-
+        torch.nn.init.normal_(self.W3, mean=0.0, std=1.0)
+        torch.nn.init.normal_(self.W4, mean=0.0, std=1.0)
         torch.nn.init.constant_(self.b1, 0.1)
         torch.nn.init.constant_(self.b2, 0.1)
         torch.nn.init.constant_(self.b3, 0.1)
@@ -85,8 +88,8 @@ class ALTER2Layer(nn.Module):
         code_data1 = self.sigmoid(torch.matmul(x, self.W1.t()) + self.b1)
         code_data2 = self.sigmoid(torch.matmul(code_data1, self.W2.t()) + self.b2)
         #decode
-        code_data3 = self.sigmoid(torch.matmul(code_data2, self.W2) + self.b3)
-        recover = torch.matmul(code_data3, self.W1) + self.b_r
+        code_data3 = self.sigmoid(torch.matmul(code_data2, self.W3.t()) + self.b3)
+        recover = torch.matmul(code_data3, self.W4.t()) + self.b_r
 
         if calculate_jacobian:
             Jac = []
@@ -98,9 +101,9 @@ class ALTER2Layer(nn.Module):
                 grad_2 = torch.matmul(self.W2.t(), diag_sigma_prime2)
                 
                 diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3[i], code_data3[i]))
-                grad_3 = torch.matmul(self.W2, diag_sigma_prime3)
+                grad_3 = torch.matmul(self.W3.t(), diag_sigma_prime3)
 
-                grad_4 = self.W1
+                grad_4 = self.W4.t()
                 Jac.append(torch.matmul(grad_1, torch.matmul(grad_2, torch.matmul(grad_3, grad_4))))
             Jac = torch.reshape(torch.cat(Jac,1), [x.shape[0], recover.shape[1], x.shape[1]])
             return recover, code_data2, Jac
@@ -118,7 +121,7 @@ class ALTER2Layer(nn.Module):
                 grad_2 = torch.matmul(self.W2.t(), diag_sigma_prime2)
         
                 diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3[i], code_data3[i]))
-                grad_3 = torch.matmul(self.W2, diag_sigma_prime3)
+                grad_3 = torch.matmul(self.W3.(), diag_sigma_prime3)
         
                 A_matrix.append(grad_1)
                 B_matrix.append(grad_2)
