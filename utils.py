@@ -24,6 +24,7 @@ def alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, lambd, gamma):
 
 
 def MTC_loss(pred, y, u, x, beta, batch_size):
+    grad_output=torch.ones(batch_size).cuda()
     criterion = nn.CrossEntropyLoss()
     loss1=criterion(pred, y)
 
@@ -80,7 +81,6 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
     return Bx
     
 def calculate_singular_vectors_B(model, train_loader, dM, batch_size):
-    grad_output=torch.ones(batch_size).cuda()
     U=[]
     with torch.no_grad():
         for step, (x, _) in enumerate(train_loader):
