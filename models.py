@@ -50,10 +50,10 @@ class CAE2Layer(nn.Module):
             Jac = []
             for i in range(batch_size): 
                 diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1[i], code_data1[i]))
-                grad_1 = torch.matmul(diag_sigma_prime1, model.W1)
+                grad_1 = torch.matmul(diag_sigma_prime1, self.W1)
 
                 diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data2[i], code_data2[i]))
-                grad_2 = torch.matmul(diag_sigma_prime2, model.W2)
+                grad_2 = torch.matmul(diag_sigma_prime2, self.W2)
 
                 Jac.append(torch.matmul(grad_2, grad_1))
             Jac = torch.stack(Jac)
@@ -97,14 +97,14 @@ class ALTER2Layer(nn.Module):
             Jac = []
             for i in range(x.shape[0]): 
                 diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1[i], code_data1[i]))
-                grad_1 = torch.matmul(diag_sigma_prime1, model.W1)
+                grad_1 = torch.matmul(diag_sigma_prime1, self.W1)
 
                 diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data2[i], code_data2[i]))
-                grad_2 = torch.matmul(diag_sigma_prime2, model.W2)
+                grad_2 = torch.matmul(diag_sigma_prime2, self.W2)
 
                 diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3[i], code_data3[i]))
-                grad_3 = torch.matmul(diag_sigma_prime3,model.W3)
-                grad_4 = model.W4
+                grad_3 = torch.matmul(diag_sigma_prime3, self.W3)
+                grad_4 = self.W4
 
                 Jac.append(torch.matmul(grad_4, torch.matmul(grad_3, torch.matmul(grad_2, grad_1))))
             Jac = torch.stack(Jac)
@@ -117,13 +117,13 @@ class ALTER2Layer(nn.Module):
             C_matrix = []
             for i in range(x.shape[0]): 
                 diag_sigma_prime1 = torch.diag( torch.mul(1.0 - code_data1[i], code_data1[i]))
-                grad_1 = torch.matmul(diag_sigma_prime1, model.W1)
+                grad_1 = torch.matmul(diag_sigma_prime1, self.W1)
 
                 diag_sigma_prime2 = torch.diag( torch.mul(1.0 - code_data2[i], code_data2[i]))
-                grad_2 = torch.matmul(diag_sigma_prime2, model.W2)
+                grad_2 = torch.matmul(diag_sigma_prime2, self.W2)
 
                 diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3[i], code_data3[i]))
-                grad_3 = torch.matmul(diag_sigma_prime3,model.W3)
+                grad_3 = torch.matmul(diag_sigma_prime3, self.W3)
                     
                 A_matrix.append(grad_1)
                 B_matrix.append(grad_2)
