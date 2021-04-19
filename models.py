@@ -121,7 +121,7 @@ class ALTER2Layer(nn.Module):
                 grad_2 = torch.matmul(self.W2.t(), diag_sigma_prime2)
         
                 diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3[i], code_data3[i]))
-                grad_3 = torch.matmul(self.W3.(), diag_sigma_prime3)
+                grad_3 = torch.matmul(self.W3.t(), diag_sigma_prime3)
         
                 A_matrix.append(grad_1)
                 B_matrix.append(grad_2)
