@@ -259,7 +259,7 @@ if args.MTC is True:
             x.requires_grad_(True)
             y = y.cuda()
             u = u.cuda()
-            pred, Jac = MTC_model(x, calculate_jacobian=True)
+            pred = MTC_model(x)
             loss, loss1 = MTC_loss(pred, y, u, x, args.beta, args.batch_size)
             x.requires_grad_(False)
             loss.backward()

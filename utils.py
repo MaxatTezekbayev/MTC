@@ -88,7 +88,7 @@ def calculate_singular_vectors_B(model, train_loader, dM, batch_size):
             x.requires_grad_(True)
             recover, code_data, Jac = model(x, calculate_jacobian = True)
             u, _, _ = torch.svd(torch.transpose(Jac.cpu(), 1, 2))
-            U.append(u[:,:,:dM])
+            U.append(u[:,:,:dM].cpu())
             if step%100 == 0:
                 print("calculating U:", step)
         U = torch.stack(U)

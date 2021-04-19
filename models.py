@@ -147,11 +147,6 @@ class MTC(nn.Module):
 
     def forward(self, x, calculate_jacobian=False):
         #encode
-        if calculate_jacobian:
-            recover, code_data, Jac = self.CAE(x, calculate_jacobian = True)
-            output = self.linear(code_data)
-            return output, Jac
-        else:
-            recover, code_data = self.CAE(x)
-            output = self.linear(code_data)
-            return output
+        _, code_data = self.CAE(x)
+        output = self.linear(code_data)
+        return output
