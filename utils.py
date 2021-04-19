@@ -5,25 +5,13 @@ import time
 
 
 
-def cae_h_loss(imgs, imgs_noise,  recover, code_data, code_data_noise, lambd, gamma, batch_size):
+def cae_h_loss(x, recover, Jac, Jac_noise, lambd, gamma):
     criterion = nn.MSELoss()
-    loss1=criterion(recover, imgs)
-    #new variant (faster)
-    grad_output=torch.ones(batch_size).cuda()
-    Jx=[]                                                                                        
-    for i in range(code_data.shape[1]):
-        Jx.append(torch.autograd.grad(outputs=code_data[:,i], inputs=imgs, grad_outputs=grad_output, retain_graph=True, create_graph=True)[0])
-    Jx=torch.reshape(torch.cat(Jx,1),[batch_size, code_data.shape[1], imgs.shape[1]])
-    
-    Jx_noise=[]                                                                                        
-    for i in range(code_data_noise.shape[1]):
-        Jx_noise.append(torch.autograd.grad(outputs=code_data_noise[:,i], inputs=imgs_noise, grad_outputs=grad_output, retain_graph=True, create_graph=True)[0])
-    Jx_noise=torch.reshape(torch.cat(Jx_noise,1),[batch_size, code_data_noise.shape[1], imgs_noise.shape[1]])
+    loss1=criterion(recover, x)
 
-    loss2 = torch.mean(torch.sum(torch.pow(Jx,2), dim=[1,2]))
-    loss3 = torch.mean(torch.sum(torch.pow(Jx - Jx_noise,2),dim=[1,2]))
+    loss2 = torch.mean(torch.sum(torch.pow(Jac,2), dim=[1,2]))
+    loss3 = torch.mean(torch.sum(torch.pow(Jac - Jac_noise,2),dim=[1,2]))
     loss = loss1 + (lambd*loss2) + gamma*loss3
-    
     return loss, loss1
 
 def alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, lambd, gamma):
@@ -31,47 +19,37 @@ def alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, lambd, gamma):
     loss1 = criterion(recover, x)
     loss2 = torch.mean(torch.sum(torch.pow(Jac - Jac_noise, 2), dim = [1, 2]))
     loss3 = torch.mean(torch.sum(torch.pow(Jac_z - b, 2), dim = [1 ,2]))
-
     loss = loss1 + (gamma * loss2) + lambd * loss3
-
     return loss, loss1
 
 
-def MTC_loss(pred, y, u, imgs, beta, batch_size):
-    grad_output=torch.ones(batch_size).cuda()
-    
+def MTC_loss(pred, y, u, x, beta, batch_size):
     criterion = nn.CrossEntropyLoss()
     loss1=criterion(pred, y)
 
     dodx=[]                                                                                        
     for i in range(pred.shape[1]):
-        dodx.append(torch.autograd.grad(outputs=pred[:,i], inputs=imgs, grad_outputs=grad_output, retain_graph=True, create_graph=True)[0])
-    dodx=torch.reshape(torch.cat(dodx,1),[batch_size, pred.shape[1], imgs.shape[1]])
+        dodx.append(torch.autograd.grad(outputs=pred[:,i], inputs=x, grad_outputs=grad_output, retain_graph=True, create_graph=True)[0])
+    dodx=torch.reshape(torch.cat(dodx,1),[batch_size, pred.shape[1], x.shape[1]])
     
     omega = torch.mean(torch.sum(torch.pow(torch.matmul(dodx, u),2), dim=[1,2]))
     
     loss=loss1 + beta * omega
     return loss, loss1
  
-# def svd_product(A, U, S, VH): # A*U*S*VH
-#     Q, R = torch.qr(torch.matmul(A.cuda(), U.cuda()).cpu())
-#     u_temp, s_temp, vh_temp = torch.svd(torch.matmul(R.cuda(), torch.diag(S).cuda()).cpu())
-#     return [torch.matmul(Q.cuda(), u_temp.cuda()), s_temp.cuda(), torch.matmul(vh_temp.T.cuda(), VH.cuda())]
-
 def svd_product(A, U, S, VH): # A*U*S*VH
-    Q, R = torch.qr(torch.matmul(A, U))
-    u_temp, s_temp, vh_temp = torch.svd(torch.matmul(R, torch.diag(S))) 
-    return [torch.matmul(Q, u_temp), s_temp, torch.matmul(vh_temp.T, VH)]
+    Q, R = torch.qr(torch.matmul(A.cuda(), U.cuda()).cpu())
+    u_temp, s_temp, vh_temp = torch.svd(torch.matmul(R.cuda(), torch.diag(S.cuda())).cpu())
+    return [torch.matmul(Q.cuda(), u_temp.cuda()), s_temp.cuda(), torch.matmul(vh_temp.T.cuda(),VH.cuda())]
 
-def svd_drei(A, B, C, U, S, VH): # A*B*C*U*S*VH
-    U1, S1, VH1 = svd_product(C, U, S, VH)
-    U2, S2, VH2 = svd_product(B, U1, S1, VH1)
-    return svd_product(A, U2, S2, VH2)
+def svd_drei(A, B, C, D): # A*B*C*D
+    U_temp, S_temp, VH_temp = torch.svd(torch.matmul(C, D).cpu())
+    return svd_product(torch.matmul(A, B), U_temp.cuda(), S_temp.cuda(), VH_temp.T.cuda())
+
 
 def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
     Bx=[]  
     start_time_model = time.time()
-
     with torch.no_grad():
         for step, (z, _) in enumerate(train_z_loader):
             z = z.view(batch_size, -1).cuda()
@@ -79,19 +57,26 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
             if optimized_SVD:
                 Bx_batch = []
                 _, code_data_z, A_matrix, B_matrix, C_matrix = model(z, calculate_jacobian = False, calculate_DREI = True)
-                U, S, VH = torch.svd(model.W1.clone().cpu())
+                U=[]
+                S=[]
+                VH=[]
+                W4 = model.W4.clone()
                 for i in range(len(A_matrix)):
-                    u, s, vh = svd_drei(A_matrix[i].cpu(), B_matrix[i].cpu(), C_matrix[i].cpu(), U, S, VH.T)
-                    b = torch.matmul(u[:, :k], torch.matmul(torch.diag_embed(s)[:k, :k], vh[:k, :]))
-                    Bx_batch.append(b.cpu())
-                Bx_batch = torch.stack(Bx_batch)
+                    u, s, vh = svd_drei(W4, C_matrix[i], B_matrix[i],  A_matrix[i])
+                    U.append(u)
+                    S.append(s)
+                    VH.append(vh)
+                U = torch.stack(U)
+                S = torch.stack(S)
+                VH = torch.stack(VH)
+                Bx_batch = torch.matmul(U[:, :, :k], torch.matmul(torch.diag_embed(S)[:, :k, :k], VH[:, :k, :]))
             else:
                 _, code_data_z, Jac_z = model(z, calculate_jacobian = True)
                 U, S, V = torch.svd(Jac_z.cpu())
                 Bx_batch = torch.matmul(U[:, :, :k], torch.matmul(torch.diag_embed(S)[:, :k, :k], torch.transpose(V[:, :, :k],1,2)))
 
             Bx.append(Bx_batch)
-    print('whole time', time.time() - start_time_model)
+    print('time:', time.time() - start_time_model)
     return Bx
     
 def calculate_singular_vectors_B(model, train_loader, dM, batch_size):
@@ -106,11 +91,8 @@ def calculate_singular_vectors_B(model, train_loader, dM, batch_size):
             U.append(u[:,:,:dM])
             if step%100 == 0:
                 print("calculating U:", step)
-        # U = torch.stack(U)
+        U = torch.stack(U)
     return U
-
-
-
 
 
 

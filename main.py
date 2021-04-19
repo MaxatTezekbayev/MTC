@@ -137,8 +137,7 @@ if args.train_CAEH is True:
 
             recover, code_data, Jac = model(x, calculate_jacobian=True)
             _, code_data_noise, Jac_noise = model(x_noise, calculate_jacobian=True)
-            loss, loss1 = cae_h_loss(x, x_noise, recover, code_data,
-                                     code_data_noise, args.lambd, args.gamma, batch_size)
+            loss, loss1 = cae_h_loss(x, recover, Jac, Jac_noise, args.lambd, args.gamma)
 
             x.requires_grad_(False)
             x_noise.requires_grad_(False)
@@ -255,15 +254,14 @@ if args.MTC is True:
         correct = 0
         test_loss = 0
         test_correct = 0
-        for (imgs, y), u in zip(train_loader, U):
-            imgs = imgs.view(batch_size, -1).cuda()
-            imgs.requires_grad_(True)
+        for (x, y), u in zip(train_loader, U):
+            x = x.view(batch_size, -1).cuda()
+            x.requires_grad_(True)
             y = y.cuda()
             u = u.cuda()
-            pred = MTC_model(imgs)
-            loss, loss1 = MTC_loss(
-                pred, y, u, imgs, args.beta, args.batch_size)
-            imgs.requires_grad_(False)
+            pred, Jac = MTC_model(x, calculate_jacobian=True)
+            loss, loss1 = MTC_loss(pred, y, u, x, args.beta, args.batch_size)
+            x.requires_grad_(False)
             loss.backward()
             train_loss += loss.item()
             CE_loss += loss1.item()
