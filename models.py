@@ -129,8 +129,8 @@ class ALTER2Layer(nn.Module):
                 B_matrix.append(grad_2)
                 C_matrix.append(grad_3)
             A_matrix = torch.stack(A_matrix)
-            B_matrix = torch.stack(A_matrix)
-            C_matrix = torch.stack(A_matrix)
+            B_matrix = torch.stack(B_matrix)
+            C_matrix = torch.stack(C_matrix)
             return recover, code_data2, A_matrix, B_matrix, C_matrix
         return recover, code_data2
         
