@@ -27,10 +27,13 @@ class CAE2Layer(nn.Module):
         torch.nn.init.constant_(self.b3, 0.1)
         torch.nn.init.constant_(self.b_r, 0.1)
 
-    def forward(self, x, calculate_jacobian = False):
+    def forward(self, x, calculate_jacobian = False, only_encode = False):
         #encode
         code_data1 = self.sigmoid(torch.matmul(x, self.W1.t()) + self.b1)
         code_data2 = self.sigmoid(torch.matmul(code_data1, self.W2.t()) + self.b2)
+
+        if only_encode:
+            return code_data2
         #decode
         code_data3 = self.sigmoid(torch.matmul(code_data2, self.W3.t()) + self.b3)
         recover = torch.matmul(code_data3, self.W4.t()) + self.b_r
@@ -145,8 +148,8 @@ class MTC(nn.Module):
         self.linear= nn.Linear(self.CAE.code_size, output_dim) 
 
 
-    def forward(self, x, calculate_jacobian=False):
+    def forward(self, x):
         #encode
-        _, code_data = self.CAE(x)
+        code_data = self.CAE(x, only_encode = True)
         output = self.linear(code_data)
         return output
