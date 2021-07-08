@@ -159,7 +159,7 @@ if args.train_CAEH is True:
         writer.add_scalar('CAEH/Loss/train_MSE', (MSE_loss / num_batches), epoch)
         writer.add_scalar('CAEH/Loss/test_MSE', (test_loss / test_num_batches), epoch)
 
-        print(epoch, train_loss/num_batches)
+        print(epoch, train_loss/num_batches, test_loss/test_num_batches)
 
     if args.save_dir_for_CAEH:
         torch.save(model.state_dict(), args.save_dir_for_CAEH)
@@ -350,6 +350,6 @@ if args.KNN:
 
     for k in ks:
         writer.add_scalar('K_acc', accuracies[k], k)
-        with open('results_CAEH.txt', 'a') as f:
+        with open('results_CAEH_tied_0.txt', 'a') as f:
             f.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(MSE_loss/num_batches, args.learning_rate,
                                                                   args.lambd, args.gamma, args.code_size, args.code_size2, args.epsilon, k, accuracies[k]))

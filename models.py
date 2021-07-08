@@ -11,17 +11,13 @@ class CAE2Layer(nn.Module):
         self.b1 = nn.Parameter(torch.Tensor(code_sizes[0]))
         self.W2 = nn.Parameter(torch.Tensor(code_sizes[1], code_sizes[0]))
         self.b2 = nn.Parameter(torch.Tensor(code_sizes[1]))
-        self.W3 = nn.Parameter(torch.Tensor(code_sizes[0], code_sizes[1]))
         self.b3 = nn.Parameter(torch.Tensor(code_sizes[0]))
-        self.W4 = nn.Parameter(torch.Tensor(dimensionality, code_sizes[0]))
         self.b_r = nn.Parameter(torch.Tensor(dimensionality))
 
         self.sigmoid = torch.nn.Sigmoid()
         # init
         torch.nn.init.normal_(self.W1, mean=0.0, std=1.0)
         torch.nn.init.normal_(self.W2, mean=0.0, std=1.0)
-        torch.nn.init.normal_(self.W3, mean=0.0, std=1.0)
-        torch.nn.init.normal_(self.W4, mean=0.0, std=1.0)
         torch.nn.init.constant_(self.b1, 0.1)
         torch.nn.init.constant_(self.b2, 0.1)
         torch.nn.init.constant_(self.b3, 0.1)
@@ -35,8 +31,8 @@ class CAE2Layer(nn.Module):
         if only_encode:
             return code_data2
         #decode
-        code_data3 = self.sigmoid(torch.matmul(code_data2, self.W3.t()) + self.b3)
-        recover = torch.matmul(code_data3, self.W4.t()) + self.b_r
+        code_data3 = self.sigmoid(torch.matmul(code_data2, self.W2) + self.b3)
+        recover = self.sigmoid(torch.matmul(code_data3, self.W1) + self.b_r)
 
         batch_size = x.shape[0]
         #jacobian for CAEH is from encoded wrt input
@@ -72,17 +68,13 @@ class ALTER2Layer(nn.Module):
         self.b1 = nn.Parameter(torch.Tensor(code_sizes[0]))
         self.W2 = nn.Parameter(torch.Tensor(code_sizes[1], code_sizes[0]))
         self.b2 = nn.Parameter(torch.Tensor(code_sizes[1]))
-        self.W3 = nn.Parameter(torch.Tensor(code_sizes[0], code_sizes[1]))
         self.b3 = nn.Parameter(torch.Tensor(code_sizes[0]))
-        self.W4 = nn.Parameter(torch.Tensor(dimensionality, code_sizes[0]))
         self.b_r = nn.Parameter(torch.Tensor(dimensionality))
 
         self.sigmoid = torch.nn.Sigmoid()
         # init
         torch.nn.init.normal_(self.W1, mean=0.0, std=1.0)
         torch.nn.init.normal_(self.W2, mean=0.0, std=1.0)
-        torch.nn.init.normal_(self.W3, mean=0.0, std=1.0)
-        torch.nn.init.normal_(self.W4, mean=0.0, std=1.0)
         torch.nn.init.constant_(self.b1, 0.1)
         torch.nn.init.constant_(self.b2, 0.1)
         torch.nn.init.constant_(self.b3, 0.1)
@@ -93,8 +85,8 @@ class ALTER2Layer(nn.Module):
         code_data1 = self.sigmoid(torch.matmul(x, self.W1.t()) + self.b1)
         code_data2 = self.sigmoid(torch.matmul(code_data1, self.W2.t()) + self.b2)
         #decode
-        code_data3 = self.sigmoid(torch.matmul(code_data2, self.W3.t()) + self.b3)
-        recover = torch.matmul(code_data3, self.W4.t()) + self.b_r
+        code_data3 = self.sigmoid(torch.matmul(code_data2, self.W2) + self.b3)
+        recover = torch.matmul(code_data3, self.W1) + self.b_r
 
         if calculate_jacobian:
             Jac = []
@@ -106,8 +98,8 @@ class ALTER2Layer(nn.Module):
                 grad_2 = torch.matmul(diag_sigma_prime2, self.W2)
 
                 diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3[i], code_data3[i]))
-                grad_3 = torch.matmul(diag_sigma_prime3, self.W3)
-                grad_4 = self.W4
+                grad_3 = torch.matmul(diag_sigma_prime3, self.W2.t())
+                grad_4 = self.W1.t()
 
                 Jac.append(torch.matmul(grad_4, torch.matmul(grad_3, torch.matmul(grad_2, grad_1))))
             Jac = torch.stack(Jac)
@@ -126,7 +118,7 @@ class ALTER2Layer(nn.Module):
                 grad_2 = torch.matmul(diag_sigma_prime2, self.W2)
 
                 diag_sigma_prime3  = torch.diag( torch.mul(1.0 - code_data3[i], code_data3[i]))
-                grad_3 = torch.matmul(diag_sigma_prime3, self.W3)
+                grad_3 = torch.matmul(diag_sigma_prime3, self.W2.t())
                     
                 A_matrix.append(grad_1)
                 B_matrix.append(grad_2)

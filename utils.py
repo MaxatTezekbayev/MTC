@@ -61,7 +61,7 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
                 U=[]
                 S=[]
                 VH=[]
-                W4 = model.W4.clone()
+                W4 = model.W1.t().clone()
                 for i in range(len(A_matrix)):
                     u, s, vh = svd_drei(W4, C_matrix[i], B_matrix[i],  A_matrix[i])
                     U.append(u)
