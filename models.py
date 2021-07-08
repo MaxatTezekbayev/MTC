@@ -32,7 +32,7 @@ class CAE2Layer(nn.Module):
             return code_data2
         #decode
         code_data3 = self.sigmoid(torch.matmul(code_data2, self.W2) + self.b3)
-        recover = self.sigmoid(torch.matmul(code_data3, self.W1) + self.b_r)
+        recover = torch.matmul(code_data3, self.W1) + self.b_r
 
         batch_size = x.shape[0]
         #jacobian for CAEH is from encoded wrt input
