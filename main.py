@@ -242,7 +242,11 @@ if args.ALTER:
 if args.MTC is True:
     writer = SummaryWriter('runs/' + "_".join(map(str, ["MTC", args.code_size, args.code_size2, args.learning_rate,
                                                         args.lambd, args.gamma, args.epsilon, args.MTC_lr, args.MTC_epochs, args.beta, args.dM])))
-    U = calculate_singular_vectors_B(model, train_loader, args.dM, batch_size)
+    if args.ALTER:
+        U = B
+    else:
+        U = calculate_singular_vectors_B(model, train_loader, args.dM, batch_size)
+
     number_of_classes = len(train_dataset.classes)
     MTC_model = MTC(model, number_of_classes)
     MTC_model.cuda()
