@@ -80,10 +80,13 @@ class ALTER2Layer(nn.Module):
         torch.nn.init.constant_(self.b3, 0.1)
         torch.nn.init.constant_(self.b_r, 0.1)
 
-    def forward(self, x, calculate_jacobian = False, calculate_DREI = False):
+    def forward(self, x, calculate_jacobian = False, calculate_DREI = False, only_encode = False):
         #encode
         code_data1 = self.sigmoid(torch.matmul(x, self.W1.t()) + self.b1)
         code_data2 = self.sigmoid(torch.matmul(code_data1, self.W2.t()) + self.b2)
+        
+        if only_encode:
+            return code_data2
         #decode
         code_data3 = self.sigmoid(torch.matmul(code_data2, self.W2) + self.b3)
         recover = torch.matmul(code_data3, self.W1) + self.b_r
@@ -125,7 +128,7 @@ class ALTER2Layer(nn.Module):
                 C_matrix.append(grad_3)
             A_matrix = torch.stack(A_matrix)
             B_matrix = torch.stack(B_matrix)
-            C_matrix = torch.stack(CAE_matrix)
+            C_matrix = torch.stack(C_matrix)
             return recover, code_data2, A_matrix, B_matrix, C_matrix
         return recover, code_data2
         

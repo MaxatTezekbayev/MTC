@@ -50,7 +50,6 @@ def svd_drei(A, B, C, D): # A*B*C*D
 
 def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
     Bx=[]  
-    start_time_model = time.time()
     with torch.no_grad():
         for step, (z, _) in enumerate(train_z_loader):
             z = z.view(batch_size, -1).cuda()
@@ -77,7 +76,6 @@ def calculate_B_alter(model, train_z_loader, k, batch_size, optimized_SVD):
                 Bx_batch = torch.matmul(U[:, :, :k], torch.matmul(torch.diag_embed(S)[:, :k, :k], torch.transpose(V[:, :, :k],1,2)))
 
             Bx.append(Bx_batch)
-    print('time:', time.time() - start_time_model)
     return Bx
     
 def calculate_singular_vectors_B(model, train_loader, dM, batch_size):
