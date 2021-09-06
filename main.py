@@ -14,42 +14,33 @@ import argparse
 from collections import Counter
 torch.manual_seed(42)
 
-parser = argparse.ArgumentParser(description='Implementation of Manifold Tangent Classifier',
+parser = argparse.ArgumentParser(description='Implementation of Manifold Tangent Classifier and Alternating Scheme',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 
 parser.add_argument('--dataset', type=str, default="MNIST")
-parser.add_argument('--ALTER', type=bool, default=False, help='Train alternating algorithm')
-parser.add_argument('--CAEH', type=bool, default=False, help='Train CAE+H')
-parser.add_argument('--learning_rate', type=float, default=0.001)
+parser.add_argument('--lr', type=float, default=0.001)
+parser.add_argument('--epochs', type=int, default=100,
+                    help='max epoch')
 parser.add_argument('--batch_size', type=int, default=20)
 parser.add_argument('--lambd', type=float, default=0.0)
 parser.add_argument('--gamma', type=float, default=0.01, help='gamma')
+parser.add_argument('--numlayers', type=int, default=2, help='layers of CAE+H (1 or 2)')
 parser.add_argument('--code_size', type=int, default=120, help='dimension of 1st hidden layer')
 parser.add_argument('--code_size2', type=int, default=60, help='dimension of 2nd hidden layer')
 
-parser.add_argument('--epsilon', type=float, default=0.1,
-                    help='std for random noise')
-
-parser.add_argument('--epochs', type=int, default=100,
-                    help='max epoch')
-
-parser.add_argument('--numlayers', type=int, default=2,
-                    help='layers of CAE+H (1 or 2)')
-
-parser.add_argument('--save_dir_for_CAEH', type=str, default=None,
+parser.add_argument('--save_autoencoder_path', type=str, default=None,
                     help='path for saving weights')
 
-parser.add_argument('--pretrained_CAEH', type=str, default=None,
-                    help='path to pretrainded state_dict for CAEH. If provided, we will not train CAEH model')
+parser.add_argument('--pretrained_autoencoder_path', type=str, default=None,
+                    help='path to pretrainded state_dict for autoencoder. If provided, we will not train autoencoder model')
+parser.add_argument('--epsilon', type=float, default=0.1,
+                    help='std for random noise')
+parser.add_argument('--CAEH', type=bool, default=False, help='choose CAE+H autoencoder')
+parser.add_argument('--ALTER', type=bool, default=False, help='choose alternating algorithm autoencoder')
 
-parser.add_argument('--KNN', type=bool, default=False,
-                    help='KNN or not')
 
-parser.add_argument('--train_CAEH', type=bool, default=None,
-                    help='train_CAEH or not')
-
-# ALTERNATING
+# ALTERNATING specific arguments
 
 parser.add_argument('--M', type=int, default=100,
                     help='the size of the subset for forcing the Jacobian to be of rank not greater than k')
@@ -63,9 +54,11 @@ parser.add_argument('--optimized_SVD', type=bool, default=None,
                     help='use optimized SVD or not')
 
 
-# MTC
+# MTC specific arguments
 parser.add_argument('--MTC', type=bool, default=False,
                     help='train MTC or not')
+parser.add_argument('--MTC_save_path', type=str, default=None,
+                    help='path to save MTC weights')
 parser.add_argument('--dM', type=int, default=15,
                     help='number of leading singular vectors')
 
@@ -73,13 +66,20 @@ parser.add_argument('--beta', type=float, default=0.1)
 parser.add_argument('--MTC_epochs', type=int, default=50)
 parser.add_argument('--MTC_lr', type=float, default=0.001)
 
+# KNN specific arguments
+parser.add_argument('--KNN', type=bool, default=False,
+                    help='run KNN or not')
+parser.add_argument('--KNN_train_size', type=int, default=10000,
+                    help='number of points in train set')
+parser.add_argument('--KNN_test_size', type=int, default=1000,
+                    help='number of points in test set')
 args = parser.parse_args()
 
 batch_size = args.batch_size
 k = args.k
 
-if args.CAEH and args.ALTER:
-    raise Exception("Select only one: CAEH or ALTER")
+assert args.CAEH ^ args.ALTER, "Select only one: CAEH or ALTER" #xor
+assert args.numlayers==1 or args.numlayers==2, "Sorry, number of layers 1 or 2"
 
 if args.dataset == "MNIST":
     image_size = 28
@@ -100,150 +100,151 @@ num_batches = len(train_dataset) // batch_size
 test_num_batches = len(test_dataset) // batch_size
 
 
-if args.numlayers == 2:
-    if args.CAEH:
+
+if args.CAEH is True:
+    if args.numlayers == 2:
         model = CAE2Layer(dimensionality, [args.code_size, args.code_size2])
-        if args.pretrained_CAEH and args.train_CAEH:
-            raise Exception("Select only one: pretrained_CAEH or train_CAEH")
-        if args.pretrained_CAEH:
-            model.load_state_dict(torch.load(args.pretrained_CAEH))
-
-    elif args.ALTER:
+    elif args.numlayers == 1:
+        pass
+elif args.ALTER is True:
+    if args.numlayers == 2:
         model = ALTER2Layer(dimensionality, [args.code_size, args.code_size2])
-else:
-    raise Exception("Sorry, number of layers only 2")
+    elif args.numlayers == 1:
+        pass
 
-
-
-
-
+#if  pretrained_autoencoder_path load pretrained weights of autoencoder  
+if args.pretrained_autoencoder_path:
+    model.load_state_dict(torch.load(args.pretrained_autoencoder_path))
 
 model.cuda()
-optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
-
-
-# train CAE+H (ALTER is below)
-if args.train_CAEH is True:
-    writer = SummaryWriter('runs/' + "_".join(map(str, ["caeh", args.code_size, args.code_size2, args.learning_rate, args.lambd, args.gamma, args.epsilon])))
+optimizer = optim.Adam(model.parameters(), lr=args.lr)
+model_name=None
+if args.pretrained_autoencoder_path is None:
+    model_name="caeh" if args.CAEH else 'ALTER'
+    writer = SummaryWriter('runs/' + "_".join(map(str, [model_name, args.code_size, args.code_size2, args.lr, args.lambd, args.gamma, args.epsilon])))
     MSELoss = nn.MSELoss()
-    for epoch in range(args.epochs):
-        train_loss = 0
-        test_loss = 0
-        MSE_loss = 0
-        for step, (x, _) in enumerate(train_loader):
-            x = x.view(batch_size, -1).cuda()
-            x.requires_grad_(True)
-            x_noise = torch.autograd.Variable(x.data + torch.normal(0, args.epsilon, size=[batch_size, dimensionality]).cuda(), requires_grad=True)
+    # train CAE+H (ALTER is below)
+    if args.CAEH is True:
+        for epoch in range(args.epochs):
+            train_loss = 0
+            test_loss = 0
+            MSE_loss = 0
+            for step, (x, _) in enumerate(train_loader):
+                x = x.view(batch_size, -1).cuda()
+                x.requires_grad_(True)
+                x_noise = torch.autograd.Variable(x.data + torch.normal(0, args.epsilon, size=[batch_size, dimensionality]).cuda(), requires_grad=True)
 
-            recover, code_data, Jac = model(x, calculate_jacobian=True)
-            _, code_data_noise, Jac_noise = model(x_noise, calculate_jacobian=True)
-            loss, loss1 = cae_h_loss(x, recover, Jac, Jac_noise, args.lambd, args.gamma)
+                recover, code_data, Jac = model(x, calculate_jacobian=True)
+                _, code_data_noise, Jac_noise = model(x_noise, calculate_jacobian=True)
+                loss, loss1 = cae_h_loss(x, recover, Jac, Jac_noise, args.lambd, args.gamma)
 
-            x.requires_grad_(False)
-            x_noise.requires_grad_(False)
+                x.requires_grad_(False)
+                x_noise.requires_grad_(False)
 
-            loss.backward()
+                loss.backward()
 
-            train_loss += loss.item()
-            MSE_loss += loss1.item()
-            optimizer.step()
-            optimizer.zero_grad()
+                train_loss += loss.item()
+                MSE_loss += loss1.item()
+                optimizer.step()
+                optimizer.zero_grad()
 
-        with torch.no_grad():
-            for test_x, _ in test_loader:
-                test_x = test_x.view(batch_size, -1).cuda()
-                test_recover, _ = model(test_x)
-                test_loss += MSELoss(test_recover, test_x).item()
+            with torch.no_grad():
+                for test_x, _ in test_loader:
+                    test_x = test_x.view(batch_size, -1).cuda()
+                    test_recover, _ = model(test_x)
+                    test_loss += MSELoss(test_recover, test_x).item()
 
-        writer.add_scalar('CAEH/Loss/train', (train_loss / num_batches), epoch)
-        writer.add_scalar('CAEH/Loss/train_MSE', (MSE_loss / num_batches), epoch)
-        writer.add_scalar('CAEH/Loss/test_MSE', (test_loss / test_num_batches), epoch)
+            writer.add_scalar('CAEH/Loss/train', (train_loss / num_batches), epoch)
+            writer.add_scalar('CAEH/Loss/train_MSE', (MSE_loss / num_batches), epoch)
+            writer.add_scalar('CAEH/Loss/test_MSE', (test_loss / test_num_batches), epoch)
 
-        print(epoch, train_loss/num_batches, test_loss/test_num_batches)
+            print("CAEH", epoch, train_loss/num_batches, test_loss/test_num_batches)
 
-    if args.save_dir_for_CAEH:
-        torch.save(model.state_dict(), args.save_dir_for_CAEH)
+        if args.save_autoencoder_path:
+            torch.save(model.state_dict(), args.save_autoencoder_path)
 
 
 
-### ALTER
-if args.ALTER:
-    writer = SummaryWriter('runs/' + "_".join(map(str, ["alter", args.code_size, args.code_size2, args.learning_rate, args.lambd, args.gamma, args.epsilon])))
-    MSELoss = nn.MSELoss()
-    #initialize B with 0-s
-    B = torch.zeros((len(train_z_loader),1))
-    train_x_iterator = iter(train_loader)
-    z_b_iter = iter(zip(train_z_loader,B))
-    for epoch in range(args.epochs):
-        train_loss = 0
-        test_loss = 0
-        MSE_loss = 0
-        for alter_step in tqdm(range(args.alter_steps)):     
-            #to always get some batch of x
-            try:
-                x = next(train_x_iterator)[0]
-            except StopIteration:
-                train_x_iterator = iter(train_loader)
-                x = next(train_x_iterator)[0]
+    ### ALTER
+    if args.ALTER is True:
+        assert args.M % args.batch_size == 0, "batch_size should be a divisor of both train size and args.M"
+        #initialize B with 0-s
+        B = torch.zeros((len(train_z_loader),1))
+        train_x_iterator = iter(train_loader)
+        z_b_iter = iter(zip(train_z_loader,B))
+        for epoch in range(args.epochs):
+            train_loss = 0
+            test_loss = 0
+            MSE_loss = 0
+            for alter_step in tqdm(range(args.alter_steps)):     
+                #to always get some batch of x
+                try:
+                    x = next(train_x_iterator)[0]
+                except StopIteration:
+                    train_x_iterator = iter(train_loader)
+                    x = next(train_x_iterator)[0]
 
-            #to always get some batch of z, b
-            try:
-                (z, _), b = next(z_b_iter)
-            except StopIteration:
-                z_b_iter = iter(zip(train_z_loader,B))
-                (z, _), b = next(z_b_iter)
+                #to always get some batch of z, b
+                try:
+                    (z, _), b = next(z_b_iter)
+                except StopIteration:
+                    z_b_iter = iter(zip(train_z_loader,B))
+                    (z, _), b = next(z_b_iter)
 
-            x = x.view(batch_size, -1).cuda()
-            z = z.view(batch_size, -1).cuda()
-            b = b.cuda()
+                x = x.view(batch_size, -1).cuda()
+                z = z.view(batch_size, -1).cuda()
+                b = b.cuda()
 
-            x.requires_grad_(True)
-            z.requires_grad_(True)
-            x_noise = torch.autograd.Variable(x.data + torch.normal(0, args.epsilon, size=[batch_size, dimensionality]).cuda(), requires_grad=True)
+                x.requires_grad_(True)
+                z.requires_grad_(True)
+                x_noise = torch.autograd.Variable(x.data + torch.normal(0, args.epsilon, size=[batch_size, dimensionality]).cuda(), requires_grad=True)
 
-            recover, code_data, Jac = model(x, calculate_jacobian = True)
-            _, code_data_noise, Jac_noise = model(x_noise, calculate_jacobian = True)
-            _, code_data_z, Jac_z = model(z, calculate_jacobian = True)
+                recover, code_data, Jac = model(x, calculate_jacobian = True)
+                _, code_data_noise, Jac_noise = model(x_noise, calculate_jacobian = True)
+                _, code_data_z, Jac_z = model(z, calculate_jacobian = True)
 
-            loss, loss1 = alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, args.lambd, args.gamma)
+                loss, loss1 = alter_loss(x, recover, Jac, Jac_noise, Jac_z, b, args.lambd, args.gamma)
 
-            x.requires_grad_(False)
-            x_noise.requires_grad_(False)
-            z.requires_grad_(False)
-            
-            loss.backward()
+                x.requires_grad_(False)
+                x_noise.requires_grad_(False)
+                z.requires_grad_(False)
+                
+                loss.backward()
 
-            train_loss += loss.item()
-            MSE_loss += loss1.item()
+                train_loss += loss.item()
+                MSE_loss += loss1.item()
 
-            optimizer.step()
-            optimizer.zero_grad()
+                optimizer.step()
+                optimizer.zero_grad()
 
-        with torch.no_grad():
-            for test_x, _ in test_loader:
-                test_x = test_x.view(batch_size, -1).cuda()
-                test_recover, _ = model(test_x)
-                test_loss += MSELoss(test_recover, test_x).item()
+            with torch.no_grad():
+                for test_x, _ in test_loader:
+                    test_x = test_x.view(batch_size, -1).cuda()
+                    test_recover, _ = model(test_x)
+                    test_loss += MSELoss(test_recover, test_x).item()
 
-        writer.add_scalar('ALTER/Loss/train', (train_loss / num_batches), epoch)
-        writer.add_scalar('ALTER/Loss/train_MSE', (MSE_loss / num_batches), epoch)
-        writer.add_scalar('ALTER/Loss/test_MSE', (test_loss / test_num_batches), epoch)
-        print(epoch, train_loss/num_batches)
-        #calculate B
-        B =calculate_B_alter(model, train_z_loader, k, batch_size, args.optimized_SVD)
-    #end of training
+            writer.add_scalar('ALTER/Loss/train', (train_loss / num_batches), epoch)
+            writer.add_scalar('ALTER/Loss/train_MSE', (MSE_loss / num_batches), epoch)
+            writer.add_scalar('ALTER/Loss/test_MSE', (test_loss / test_num_batches), epoch)
+            print(epoch, train_loss/num_batches)
+            #calculate B
+            B =calculate_B_alter(model, train_z_loader, k, batch_size, args.optimized_SVD)
+        #end of training
 
-    if args.save_dir_for_ALTER:
-        torch.save(model.state_dict(), args.save_dir_for_ALTER)
-        torch.save(B, "B_"+args.save_dir_for_ALTER)
+        if args.save_autoencoder_path:
+            torch.save(model.state_dict(), args.save_autoencoder_path)
+            torch.save(B, "B_"+args.save_autoencoder_path)
 
 
 # train Manifold Tangent Classifier
 if args.MTC is True:
-    writer = SummaryWriter('runs/' + "_".join(map(str, ["MTC", args.code_size, args.code_size2, args.learning_rate,
-                                                        args.lambd, args.gamma, args.epsilon, args.MTC_lr, args.MTC_epochs, args.beta, args.dM])))
+    autoencoder_model_name = args.pretrained_autoencoder_path if args.pretrained_autoencoder_path else args.save_autoencoder_path
+    #if both pretrained_autoencoder_path and save_autoencoder_path are None, than:
+    if autoencoder_model_name is None:
+        autoencoder_model_name = "_".join(map(str, [model_name, args.code_size, args.code_size2, args.lr, args.lambd, args.gamma, args.epsilon]))
+    writer = SummaryWriter('runs/' + "_".join(map(str, ["MTC", autoencoder_model_name, args.MTC_lr, args.MTC_epochs, args.beta, args.dM])))
     if args.ALTER:
-        U = B
+        U = torch.load("B_"+args.pretrained_autoencoder_path)
     else:
         U = calculate_singular_vectors_B(model, train_loader, args.dM, batch_size)
 
@@ -291,6 +292,9 @@ if args.MTC is True:
         writer.add_scalar('MTC/Acc/train', (correct / (num_batches*batch_size)), epoch)
         writer.add_scalar('MTC/Acc/test', (test_correct / (test_num_batches*batch_size)), epoch)
         print(epoch, train_loss/num_batches, CE_loss/num_batches, (test_loss / test_num_batches), correct / (num_batches*batch_size), test_correct / (test_num_batches*batch_size))
+    
+    if args.MTC_save_path is not None:
+        torch.save(model.state_dict(), args.MTC_save_path)
 
 
 # if CAEH + KNN
@@ -298,8 +302,8 @@ if args.KNN:
     train_dataset = datasets.MNIST('data', train=True, download=True, transform=transforms.ToTensor())
     test_dataset = datasets.MNIST('data', train=False, download=True, transform=transforms.ToTensor())
 
-    test_size = 10000
-    train_size = 1000
+    test_size = args.KNN_train_size
+    train_size = args.KNN_test_size
     train_dataset = torch.utils.data.Subset(train_dataset, range(0, train_size))
     test_dataset = torch.utils.data.Subset(test_dataset, range(0, test_size))
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=len(train_dataset))
@@ -355,5 +359,5 @@ if args.KNN:
     for k in ks:
         writer.add_scalar('K_acc', accuracies[k], k)
         with open('results_CAEH_tied_0.txt', 'a') as f:
-            f.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(MSE_loss/num_batches, args.learning_rate,
+            f.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(MSE_loss/num_batches, args.lr,
                                                                   args.lambd, args.gamma, args.code_size, args.code_size2, args.epsilon, k, accuracies[k]))

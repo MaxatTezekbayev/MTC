@@ -10,18 +10,23 @@ mkdir runs
 
 ## Train CAE+H
 ```
-CUDA_VISIBLE_DEVICES=0 python main.py --CAEH True --train_CAEH True --epochs 50 --lambd 1e-05 --gamma 1e-07 --numlayers 2 --code_size 120  --code_size2 60   --save_dir_for_CAE saved_weights/120_60_1e-05_1e-07.pth 
-```
-
-## Train MTC using CAE+H
-```
-CUDA_VISIBLE_DEVICES=0 python main.py --CAEH True  --MTC True --MTC_epochs 50 --lambd 1e-05 --gamma 1e-07 --numlayers 2 --code_size 120 --code_size2 60   --pretrained_CAEH saved_weights/120_60_1e-05_1e-07.pth
+CUDA_VISIBLE_DEVICES=0 python main.py --CAEH True --epochs 40 --batch_size 20 --lambd 1e-05 --gamma 1e-07 --numlayers 2 --code_size 120  --code_size2 60   --save_autoencoder_path saved_weights/caeh_120_60_1e-05_1e-07.pth 
 ```
 
 
 ## Train Alternating
 ```
-CUDA_VISIBLE_DEVICES=0 python main.py --ALTER True  --M 600 --epochs 40 --lambd 10.0 --gamma 1.0 --numlayers 2 --code_size 120 --code_size2 60 --save_dir_for_ALTER saved_weights/alter_120_60_10.0_1.0.pth
+CUDA_VISIBLE_DEVICES=0 python main.py --ALTER True  --M 600 --batch_size 20 --epochs 40 --alter_steps 300 --lambd 10.0 --gamma 1.0 --numlayers 2 --code_size 120 --code_size2 60 --k 40  --save_autoencoder_path saved_weights/alter_120_60_10.0_1.0.pth
 ```
-To turn optimized SVD calculation add ```--optimized_SVD True```:
+To turn optimized SVD calculation add flag: ```--optimized_SVD True```
+
+## Train MTC using CAE+H
+```
+CUDA_VISIBLE_DEVICES=0 python main.py --CAEH True  --MTC True --MTC_epochs 40  --pretrained_autoencoder_path saved_weights/caeh_120_60_1e-05_1e-07.pth
+```
+
+## Train MTC using Alternating
+```
+CUDA_VISIBLE_DEVICES=0 python main.py --ALTER True  --MTC True --MTC_epochs 40  --pretrained_autoencoder_path saved_weights/alter_120_60_10.0_1.0.pth
+```
 

@@ -12,6 +12,7 @@ __pycache__/
 saved_weights/
 results/
 runs/
+B_saved_weights/
 *.pth
 
 # Distribution / packaging
